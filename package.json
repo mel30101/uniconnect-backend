@@ -1,0 +1,25 @@
+{
+  "name": "uniconnect-backend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "gateway",
+    "services/*"
+  ],
+  "scripts": {
+    "install-all": "npm install",
+    "dev": "concurrently -n \"GATEWAY,AUTH,USER,SOCIAL,CHAT,ACAD\" -c \"magenta,blue,green,yellow,cyan,white\" \"npm run dev --workspace=gateway\" \"npm run dev --workspace=services/auth-service\" \"npm run dev --workspace=services/user-service\" \"npm run dev --workspace=services/social-service\" \"npm run dev --workspace=services/chat-service\" \"npm run dev --workspace=services/academic-service\""
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.14"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.7.0"
+  }
+}
