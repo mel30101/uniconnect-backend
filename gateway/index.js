@@ -52,6 +52,19 @@ app.use('/api/chat', createProxyMiddleware({
     }
 }));
 
+// --- GROUP CHAT SERVICE ---
+app.use('/api/group-chats', createProxyMiddleware({
+    target: `${process.env.CHAT_SERVICE_URL}/groups`,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req, res) => {
+        if (req.body) {
+            const bodyData = JSON.stringify(req.body);
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            proxyReq.write(bodyData);
+        }
+    }
+}));
+
 // --- ACADEMIC SERVICE ---
 // Redirecciones explícitas para las llamadas de la API de React Native (Hierarchy, Careers, Subjects)
 app.use('/api/careers', createProxyMiddleware({
