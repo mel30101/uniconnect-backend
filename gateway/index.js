@@ -69,6 +69,19 @@ app.use('/api/chat', createProxyMiddleware({
     }
 }));
 
+// --- GROUP CHAT SERVICE ---
+app.use('/api/group-chats', createProxyMiddleware({
+    target: `${process.env.CHAT_SERVICE_URL}/groups`,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req, res) => {
+        if (req.body) {
+            const bodyData = JSON.stringify(req.body);
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            proxyReq.write(bodyData);
+        }
+    }
+}));
+
 // --- ACADEMIC SERVICE ---
 app.use('/api/careers', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/careers`,
