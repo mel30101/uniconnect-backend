@@ -5,45 +5,62 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 
-// 1. Configuración de CORS para permitir peticiones de React Native (vía ngrok)
-app.use(cors());
+app.use(cors({
+    origin: [
+        process.env.DASHBOARD_URL, // http://localhost:8081
+        "https://andrea-ministrative-nonharmoniously.ngrok-free.dev" // El ngrok actual de la app móvil
+    ],
+    credentials: true
+}));
 
-// 2. Definición de rutas basadas en tu monolito anterior
+
+const onProxyRes = (proxyRes) => {
+    delete proxyRes.headers['access-control-allow-origin'];
+    delete proxyRes.headers['access-control-allow-methods'];
+    delete proxyRes.headers['access-control-allow-credentials'];
+    delete proxyRes.headers['access-control-allow-headers'];
+};
 
 // --- AUTH SERVICE ---
 app.use('/auth', createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
+    onProxyRes
 }));
 
 // --- USER / PROFILE / SEARCH SERVICE ---
-// Agrupamos perfiles y búsqueda de estudiantes según la sugerencia de la docente
 app.use('/api/academic-profile', createProxyMiddleware({
     target: `${process.env.USER_SERVICE_URL}/profile`,
     changeOrigin: true,
+    onProxyRes
 }));
 app.use('/api/search-students', createProxyMiddleware({
     target: `${process.env.USER_SERVICE_URL}/search`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 // --- SOCIAL SERVICE (Groups & Events) ---
 app.use('/api/events', createProxyMiddleware({
     target: `${process.env.SOCIAL_SERVICE_URL}/events`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 app.use('/api/groups', createProxyMiddleware({
     target: `${process.env.SOCIAL_SERVICE_URL}/groups`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 // --- CHAT SERVICE ---
 app.use('/api/chat', createProxyMiddleware({
     target: process.env.CHAT_SERVICE_URL,
     changeOrigin: true,
+    onProxyRes: (proxyRes, req, res) => {
+        onProxyRes(proxyRes);
+    },
     onProxyReq: (proxyReq, req, res) => {
-        // Si el microservicio necesita el cuerpo original para procesar el archivo
         if (req.body) {
             const bodyData = JSON.stringify(req.body);
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
@@ -53,41 +70,46 @@ app.use('/api/chat', createProxyMiddleware({
 }));
 
 // --- ACADEMIC SERVICE ---
-// Redirecciones explícitas para las llamadas de la API de React Native (Hierarchy, Careers, Subjects)
 app.use('/api/careers', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/careers`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 app.use('/api/career-structure', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/career-structure`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 app.use('/api/subjects', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/subjects`,
     changeOrigin: true,
+    onProxyRes
 }));
 
-// Rutas de selector de jerarquías (AcademicHierarchySelector)
 app.use('/api/hierarchy/faculties', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/faculties`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 app.use('/api/hierarchy/academic-levels', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/academic-levels`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 app.use('/api/hierarchy/formation-levels', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/formation-levels`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 app.use('/api/hierarchy/careers-by-path', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/careers-by-path`,
     changeOrigin: true,
+    onProxyRes
 }));
 
 // 3. Health Check (Para saber si el gateway está vivo)

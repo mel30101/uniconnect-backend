@@ -1,10 +1,8 @@
-// services/social-service/index.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { db } = require('./src/config/firestore');
 
-// --- 1. REPOSITORIOS SOCIALES ---
 const FirestoreGroupRepository = require('./src/infrastructure/database/FirestoreGroupRepository');
 const FirestoreGroupMemberRepository = require('./src/infrastructure/database/FirestoreGroupMemberRepository');
 const FirestoreGroupRequestRepository = require('./src/infrastructure/database/FirestoreGroupRequestRepository');
@@ -20,7 +18,6 @@ const eventRepo = new FirestoreEventRepository(db);
 const userRepo = new FirestoreUserRepository(db);
 const catalogRepo = new FirestoreAcademicCatalogRepository(db);
 
-// --- 2. CASOS DE USO (Agrupados) ---
 const CreateGroup = require('./src/application/use-cases/group/createGroup');
 const GetUserGroups = require('./src/application/use-cases/group/getUserGroups');
 const GetGroupById = require('./src/application/use-cases/group/getGroupById');
@@ -53,40 +50,36 @@ const getAvailableStudentsUC = new GetAvailableStudents(groupMemberRepo, userRep
 const deleteUserRequestsUC = new DeleteUserRequests(groupRequestRepo);
 const getEventsUC = new GetEvents(eventRepo);
 
-// --- 3. CONTROLADORES ---
 const GroupController = require('./src/infrastructure/http/controllers/groupController');
 const EventController = require('./src/infrastructure/http/controllers/eventController');
 
 const groupCtrl = new GroupController({
-    createGroup: createGroupUC,
-    getUserGroups: getUserGroupsUC,
-    getGroupById: getGroupByIdUC,
-    searchGroups: searchGroupsUC,
-    checkGroupNameUnique: checkGroupNameUniqueUC,
-    sendJoinRequest: sendJoinRequestUC,
-    getGroupRequests: getGroupRequestsUC,
-    handleRequestAction: handleRequestActionUC,
-    removeMember: removeMemberUC,
-    transferAdmin: transferAdminUC,
-    addMember: addMemberUC,
-    leaveGroup: leaveGroupUC,
-    getAvailableStudents: getAvailableStudentsUC,
-    deleteUserRequests: deleteUserRequestsUC
+  createGroup: createGroupUC,
+  getUserGroups: getUserGroupsUC,
+  getGroupById: getGroupByIdUC,
+  searchGroups: searchGroupsUC,
+  checkGroupNameUnique: checkGroupNameUniqueUC,
+  sendJoinRequest: sendJoinRequestUC,
+  getGroupRequests: getGroupRequestsUC,
+  handleRequestAction: handleRequestActionUC,
+  removeMember: removeMemberUC,
+  transferAdmin: transferAdminUC,
+  addMember: addMemberUC,
+  leaveGroup: leaveGroupUC,
+  getAvailableStudents: getAvailableStudentsUC,
+  deleteUserRequests: deleteUserRequestsUC
 });
 
 const eventCtrl = new EventController({
   getEvents: getEventsUC
 });
 
-// --- 4. RUTAS ---
 const createGroupRoutes = require('./src/infrastructure/http/routes/groupRoutes');
 const createEventRoutes = require('./src/infrastructure/http/routes/eventRoutes');
 
 const app = express();
-app.use(cors());
 app.use(express.json());
 
-// El Gateway mapea /api/groups y /api/events -> este microservicio
 app.use('/groups', createGroupRoutes(groupCtrl));
 app.use('/events', createEventRoutes(eventCtrl));
 
