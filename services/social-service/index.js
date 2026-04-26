@@ -7,6 +7,8 @@ const FirestoreGroupRepository = require('./src/infrastructure/database/Firestor
 const FirestoreGroupMemberRepository = require('./src/infrastructure/database/FirestoreGroupMemberRepository');
 const FirestoreGroupRequestRepository = require('./src/infrastructure/database/FirestoreGroupRequestRepository');
 const FirestoreEventRepository = require('./src/infrastructure/database/FirestoreEventRepository');
+const FirestoreCategoryRepository = require('./src/infrastructure/database/FirestoreCategoryRepository');
+const FirestoreEventSubscriptionRepository = require('./src/infrastructure/database/FirestoreEventSubscriptionRepository');
 
 const FirestoreUserRepository = require('./src/infrastructure/database/FirestoreUserRepository');
 const FirestoreAcademicCatalogRepository = require('./src/infrastructure/database/FirestoreAcademicCatalogRepository');
@@ -15,6 +17,8 @@ const groupRepo = new FirestoreGroupRepository(db);
 const groupMemberRepo = new FirestoreGroupMemberRepository(db);
 const groupRequestRepo = new FirestoreGroupRequestRepository(db);
 const eventRepo = new FirestoreEventRepository(db);
+const categoryRepo = new FirestoreCategoryRepository(db);
+const subscriptionRepo = new FirestoreEventSubscriptionRepository(db);
 const userRepo = new FirestoreUserRepository(db);
 const catalogRepo = new FirestoreAcademicCatalogRepository(db);
 
@@ -33,6 +37,10 @@ const LeaveGroup = require('./src/application/use-cases/group/leaveGroup');
 const GetAvailableStudents = require('./src/application/use-cases/group/getAvailableStudents');
 const DeleteUserRequests = require('./src/application/use-cases/group/deleteUserRequests');
 const GetEvents = require('./src/application/use-cases/event/getEvents');
+const GetCategories = require('./src/application/use-cases/event/GetCategories');
+const SubscribeToCategory = require('./src/application/use-cases/event/SubscribeToCategory');
+const UnsubscribeFromCategory = require('./src/application/use-cases/event/UnsubscribeFromCategory');
+const GetSubscribedCategories = require('./src/application/use-cases/event/GetSubscribedCategories');
 
 const createGroupUC = new CreateGroup(groupRepo, groupMemberRepo);
 const getUserGroupsUC = new GetUserGroups(groupMemberRepo, groupRepo, catalogRepo, userRepo);
@@ -48,7 +56,11 @@ const addMemberUC = new AddMember(groupMemberRepo);
 const leaveGroupUC = new LeaveGroup(groupMemberRepo);
 const getAvailableStudentsUC = new GetAvailableStudents(groupMemberRepo, userRepo);
 const deleteUserRequestsUC = new DeleteUserRequests(groupRequestRepo);
-const getEventsUC = new GetEvents(eventRepo);
+const getEventsUC = new GetEvents(eventRepo, categoryRepo);
+const getCategoriesUC = new GetCategories(categoryRepo);
+const subscribeToCategoryUC = new SubscribeToCategory(subscriptionRepo);
+const unsubscribeFromCategoryUC = new UnsubscribeFromCategory(subscriptionRepo);
+const getSubscribedCategoriesUC = new GetSubscribedCategories(subscriptionRepo);
 
 const GroupController = require('./src/infrastructure/http/controllers/groupController');
 const EventController = require('./src/infrastructure/http/controllers/eventController');
@@ -71,7 +83,11 @@ const groupCtrl = new GroupController({
 });
 
 const eventCtrl = new EventController({
-  getEvents: getEventsUC
+  getEvents: getEventsUC,
+  getCategories: getCategoriesUC,
+  subscribeToCategory: subscribeToCategoryUC,
+  unsubscribeFromCategory: unsubscribeFromCategoryUC,
+  getSubscribedCategories: getSubscribedCategoriesUC
 });
 
 const createGroupRoutes = require('./src/infrastructure/http/routes/groupRoutes');
