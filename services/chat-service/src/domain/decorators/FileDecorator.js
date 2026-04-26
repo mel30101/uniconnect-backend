@@ -1,4 +1,3 @@
-// src/domain/decorators/FileDecorator.js
 class FileDecorator {
   async decorate(message) {
     if (message.type === 'file' && message.fileUrl) {
@@ -12,12 +11,21 @@ class FileDecorator {
       } else if (['pdf'].includes(extensionMatch)) {
         detectedType = 'pdf';
         icon = '📕';
-      } else if (['mp4', 'webm', 'ogg'].includes(extensionMatch)) {
+      } else if (['doc', 'docx'].includes(extensionMatch)) {
+        detectedType = 'documento_word';
+        icon = '📘';
+      } else if (['xls', 'xlsx', 'xlsm', 'csv'].includes(extensionMatch)) {
+        detectedType = 'documento_excel';
+        icon = '📗';
+      } else if (['ppt', 'pptx'].includes(extensionMatch)) {
+        detectedType = 'documento_powerpoint';
+        icon = '📙';
+      } else if (['mp4', 'webm', 'ogg', 'mov'].includes(extensionMatch)) {
         detectedType = 'video';
         icon = '🎥';
       } else if (['zip', 'rar', 'tar', 'gz'].includes(extensionMatch)) {
         detectedType = 'archivo_comprimido';
-        icon = '🗜️';
+        icon = '📦';
       }
 
       message.visual_metadata = {
@@ -26,7 +34,7 @@ class FileDecorator {
         extension: extensionMatch || 'unknown'
       };
     }
-    
+
     return message;
   }
 }

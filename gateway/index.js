@@ -73,6 +73,9 @@ app.use('/api/chat', createProxyMiddleware({
 app.use('/api/group-chats', createProxyMiddleware({
     target: `${process.env.CHAT_SERVICE_URL}/groups`,
     changeOrigin: true,
+    onProxyRes: (proxyRes, req, res) => {
+        onProxyRes(proxyRes);
+    },
     onProxyReq: (proxyReq, req, res) => {
         if (req.body) {
             const bodyData = JSON.stringify(req.body);
