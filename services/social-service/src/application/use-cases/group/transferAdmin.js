@@ -1,8 +1,11 @@
+const { GroupEvents } = require('../../../domain/observer/ISubject');
+
 class TransferAdmin {
-  constructor(groupRepo, groupMemberRepo, db) {
+  constructor(groupRepo, groupMemberRepo, db, subject) {
     this.groupRepo = groupRepo;
     this.groupMemberRepo = groupMemberRepo;
     this.db = db;
+    this.subject = subject;
   }
 
   async execute(groupId, adminId, newAdminId) {
@@ -10,14 +13,18 @@ class TransferAdmin {
       throw new Error('MISSING_FIELDS');
     }
 
+    let groupDataForNotify = null;
+
     // Usar transacción para asegurar consistencia
-    return await this.db.runTransaction(async (transaction) => {
+    await this.db.runTransaction(async (transaction) => {
       const groupRef = this.db.collection('groups').doc(groupId);
       const groupDoc = await transaction.get(groupRef);
 
       if (!groupDoc.exists) {
         throw new Error('GROUP_NOT_FOUND');
       }
+
+      groupDataForNotify = { id: groupDoc.id, ...groupDoc.data() };
 
       // Verificar que el admin actual es realmente admin
       const currentAdminData = await this.groupMemberRepo.getRefsByGroupAndUser(groupId, adminId);
@@ -36,6 +43,17 @@ class TransferAdmin {
       transaction.update(newAdminData.ref, { role: 'admin' });
       transaction.delete(currentAdminData.ref);
     });
+
+    // Notificar al nuevo Admin
+    if (this.subject && groupDataForNotify) {
+      this.subject.notify(GroupEvents.TRANSFERENCIA_ADMIN, {
+        targetUserId: newAdminId,
+        groupId: groupDataForNotify.id,
+        groupName: groupDataForNotify.name
+      });
+    }
+
+    return { success: true };
   }
 }
 
