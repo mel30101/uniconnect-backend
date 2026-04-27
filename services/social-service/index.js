@@ -3,7 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const { db } = require('./src/config/firestore');
+
+const DatabaseFactory = require('./src/config/databaseFactory');
+const db = DatabaseFactory.getDatabase();
 
 // Repositorios
 const FirestoreGroupRepository = require('./src/infrastructure/database/FirestoreGroupRepository');
@@ -139,7 +141,11 @@ app.use(express.json());
 app.use('/groups', createGroupRoutes(groupCtrl));
 app.use('/events', createEventRoutes(eventCtrl));
 
-const PORT = process.env.PORT || 3003;
-server.listen(PORT, () => {
-  console.log(`👥 Social Service (Grupos y Eventos) listo en puerto ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  const PORT = process.env.PORT || 3003;
+  server.listen(PORT, () => {
+    console.log(`👥 Social Service (Grupos y Eventos) listo en puerto ${PORT}`);
+  });
+}
+
+module.exports = app;
