@@ -7,7 +7,7 @@ class SearchGroups {
   }
 
   async execute({ subjectId, search, userSubjectIds, userId }) {
-    if (!search && !subjectId) return [];
+    // Si no hay búsqueda ni filtros, permitimos obtener todos los grupos (útil para carga inicial)
 
     // Obtener todos los grupos (filtrados por subjectId si se proporcionó)
     let groups = await this.groupRepo.findAll();
@@ -16,18 +16,15 @@ class SearchGroups {
       groups = groups.filter(g => g.subjectId === subjectId);
     }
 
-    // Filtrar por materias del usuario
     if (userSubjectIds) {
       const allowedIds = userSubjectIds.split(',');
       groups = groups.filter(group => allowedIds.includes(group.subjectId));
     }
 
-    // Excluir grupos creados por el usuario
     if (userId) {
       groups = groups.filter(group => group.creatorId !== userId);
     }
 
-    // Filtrar por búsqueda de texto
     if (search) {
       const searchLower = search.toLowerCase();
       const allSubjects = await this.catalogRepo.getAllSubjects();
@@ -56,14 +53,12 @@ class SearchGroups {
         subjectName: subjectsMap[group.subjectId] || 'Materia desconocida'
       }));
     } else {
-      // Enriquecer con nombre de materia
       for (let group of groups) {
         const subject = await this.catalogRepo.getSubjectById(group.subjectId);
         group.subjectName = subject ? subject.name : 'Materia desconocida';
       }
     }
 
-    // Enriquecer con admin y miembros
     const enrichedGroups = await Promise.all(groups.map(async (group) => {
       let adminName = 'Desconocido';
       if (group.creatorId) {
