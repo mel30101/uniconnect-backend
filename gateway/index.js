@@ -128,10 +128,18 @@ app.use('/api/hierarchy/careers-by-path', createProxyMiddleware({
     onProxyRes
 }));
 
+// --- NOTIFICATION SERVICE ---
+app.use('/api/notifications', createProxyMiddleware({
+    target: `${process.env.NOTIFICATION_SERVICE_URL}/notifications`,
+    changeOrigin: true,
+    onProxyRes
+}));
+
 // 3. Health Check (Para saber si el gateway está vivo)
 app.get('/status', (req, res) => {
     res.json({ status: 'Gateway Operativo', timestamp: new Date() });
 });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

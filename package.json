@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "install-all": "npm install",
-    "dev": "concurrently -n \"GATEWAY,AUTH,USER,SOCIAL,CHAT,ACAD\" -c \"magenta,blue,green,yellow,cyan,white\" \"npm run dev --workspace=gateway\" \"npm run dev --workspace=services/auth-service\" \"npm run dev --workspace=services/user-service\" \"npm run dev --workspace=services/social-service\" \"npm run dev --workspace=services/chat-service\" \"npm run dev --workspace=services/academic-service\"",
+    "dev": "concurrently -n \"GATEWAY,AUTH,USER,SOCIAL,CHAT,ACAD,NOTIF\" -c \"magenta,blue,green,yellow,cyan,white,red\" \"npm run dev --workspace=gateway\" \"npm run dev --workspace=services/auth-service\" \"npm run dev --workspace=services/user-service\" \"npm run dev --workspace=services/social-service\" \"npm run dev --workspace=services/chat-service\" \"npm run dev --workspace=services/academic-service\" \"npm run dev --workspace=services/notification-service\"",
     "test": "jest --verbose"
   },
   "license": "ISC",
@@ -21,9 +21,11 @@
     "supertest": "^7.2.2"
   },
   "dependencies": {
+    "axios": "^1.15.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "socket.io": "^4.8.3"
   }
 }
