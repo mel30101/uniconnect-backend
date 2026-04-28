@@ -17,6 +17,10 @@ class PushNotificationObserver extends IObserver {
         await this._sendToNotificationService('SOLICITUD_INGRESO', data);
       } else if (event === GroupEvents.MENCION) {
         await this._sendToNotificationService('MENCION', data);
+      } else if (event === GroupEvents.TRANSFERENCIA_ADMIN_SOLICITADA) {
+        await this._sendToNotificationService('TRANSFER_ADMIN_SOLICITADA', data);
+      } else if (event === GroupEvents.TRANSFERENCIA_ADMIN_ACEPTADA) {
+        await this._sendToNotificationService('TRANSFER_ADMIN_ACEPTADA', data);
       }
     } catch (error) {
       console.error('[PushNotificationObserver] Error al enviar notificación push:', error.message);

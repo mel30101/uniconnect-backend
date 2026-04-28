@@ -38,6 +38,10 @@ class WebSocketNotificationObserver extends IObserver {
         return `Tu solicitud para ${data.groupName} no fue aprobada.`;
       case 'TRANSFERENCIA_ADMIN':
         return `Has sido nombrado administrador de ${data.groupName}.`;
+      case 'TRANSFERENCIA_ADMIN_SOLICITADA':
+        return `${data.userName} te ha solicitado ser el administrador del grupo ${data.groupName}.`;
+      case 'TRANSFERENCIA_ADMIN_ACEPTADA':
+        return `${data.userName} ha aceptado ser el administrador del grupo ${data.groupName}.`;
       default:
         return 'Tienes una nueva notificación.';
     }

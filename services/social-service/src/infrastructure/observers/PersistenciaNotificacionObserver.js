@@ -37,6 +37,10 @@ class PersistenciaNotificacionObserver extends IObserver {
         return `Tu solicitud para el grupo ${data.groupName} ha sido rechazada.`;
       case 'TRANSFERENCIA_ADMIN':
         return `Ahora eres el administrador del grupo ${data.groupName}.`;
+      case 'TRANSFERENCIA_ADMIN_SOLICITADA':
+        return `${data.userName} te ha solicitado ser el administrador del grupo ${data.groupName}.`;
+      case 'TRANSFERENCIA_ADMIN_ACEPTADA':
+        return `${data.userName} ha aceptado ser el administrador del grupo ${data.groupName}.`;
       default:
         return `Nueva notificación en el grupo ${data.groupName}.`;
     }
