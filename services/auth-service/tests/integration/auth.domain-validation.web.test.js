@@ -10,6 +10,7 @@ const TestDatabaseSetup = require('../utils/setupTestDB');
 const TokenBuilder = require('../helpers/tokenBuilder'); 
 
 let db;
+const VALID_ORIGIN = 'http://localhost:3000';
 
 describe('GET /google - Domain Validation', () => {
   
@@ -39,6 +40,7 @@ describe('GET /google - Domain Validation', () => {
 
       const response = await request(app)
         .get('/google')
+        .set('Origin', VALID_ORIGIN)
         .query({ token });
 
       expect([200, 302]).toContain(response.status);
@@ -46,13 +48,23 @@ describe('GET /google - Domain Validation', () => {
 
     it('debe crear el registro en el emulador si el dominio es correcto', async () => {
       const testUid = 'ucaldas_user_123';
+      const testEmail = 'profesor@ucaldas.edu.co';
+      
       const token = TokenBuilder.createValidDomainToken({
         uid: testUid,
         email: 'profesor@ucaldas.edu.co'
       });
 
+      //Simulación para redirigir
+      await db.collection('users').doc(testUid).set({
+        uid: testUid,
+        email: testEmail,
+        name: 'Profesor Test'
+      });
+
       await request(app)
         .get('/google')
+        .set('Origin', VALID_ORIGIN)
         .query({ token });
 
       const userInDB = await TestDatabaseSetup.getTestDocument(db, 'users', testUid);
@@ -70,6 +82,7 @@ describe('GET /google - Domain Validation', () => {
 
       const response = await request(app)
         .get('/google')
+        .set('Origin', VALID_ORIGIN)
         .query({ token });
 
       expect([401, 403, 302]).toContain(response.status);

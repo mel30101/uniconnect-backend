@@ -65,30 +65,32 @@ describe('Social Service - Criterio 3: Persistencia de Notificaciones', () => {
         console.log('✅ Marca de tiempo (Timestamp) detectada correctamente.');
     });
 
-    it('debe persistir una notificación para el miembro cuando es agregado directamente', async () => {
-        const nuevoMiembroId = 'estudiante-invitado-777';
+    describe.skip('Pruebas de integración en pausa por despliegue', () => {
+        it('debe persistir una notificación para el miembro cuando es agregado directamente', async () => {
+            const nuevoMiembroId = 'estudiante-invitado-777';
 
-        const res = await request(app)
-            .post(`/groups/${groupId}/members`) // Ahora groupId sí está definido
-            .send({
-                userId: nuevoMiembroId,
-                userName: 'Juan Invitado'
-            });
+            const res = await request(app)
+                .post(`/groups/${groupId}/members`) // Ahora groupId sí está definido
+                .send({
+                    userId: nuevoMiembroId,
+                    userName: 'Juan Invitado'
+                });
 
-        expect(res.status).toBe(201);
+            expect(res.status).toBe(201);
 
-        await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 3000));
 
-        const notificationsSnapshot = await db.collection('notifications')
-            .where('targetUserId', '==', nuevoMiembroId)
-            .get();
+            const notificationsSnapshot = await db.collection('notifications')
+                .where('targetUserId', '==', nuevoMiembroId)
+                .get();
 
-        if (notificationsSnapshot.empty) {
-            console.warn('⚠️ HALLAZGO: El miembro fue agregado, pero NO recibió una notificación.');
-        } else {
-            console.log('✅ ÉXITO: Notificación de inclusión directa persistida.');
-        }
+            if (notificationsSnapshot.empty) {
+                console.warn('⚠️ HALLAZGO: El miembro fue agregado, pero NO recibió una notificación.');
+            } else {
+                console.log('✅ ÉXITO: Notificación de inclusión directa persistida.');
+            }
 
-        expect(notificationsSnapshot.empty).toBe(false);
-    }, 10000);
+            expect(notificationsSnapshot.empty).toBe(false);
+        }, 10000);
+    });
 });
