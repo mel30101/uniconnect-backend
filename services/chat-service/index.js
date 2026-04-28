@@ -95,7 +95,49 @@ io.on('connection', async (socket) => {
     socket.join(study_group_id);
     console.log(`[Socket] Usuario ${userId} unido a la sala: ${study_group_id}`);
 
-    // 3. Manejar la desconexión (Criterio de Aceptación 3)
+    // --- TAREA 2: LISTENER SEND_MESSAGE Y PERSISTENCIA ---
+    socket.on('send_message', async (payload, callback) => {
+      const { sender_id, group_id, content } = payload;
+
+      // 1. Validación (Criterio 1)
+      if (!sender_id || !group_id || !content) {
+        console.warn(`[Socket] Intento de mensaje inválido de ${userId}`);
+        if (callback) callback({ success: false, error: 'sender_id, group_id y content son requeridos.' });
+        return;
+      }
+
+      try {
+        // 2. Persistencia en Firestore (Criterio 2)
+        // Reutilizamos el caso de uso existente para mantener la lógica de menciones y estructura
+        const result = await sendGroupMessageUC.execute(group_id, sender_id, { text: content });
+
+        // 3. Estructura de respuesta (Criterio 3)
+        const responseData = {
+          message_id: result.messageId,
+          timestamp: new Date().toISOString(), // Usamos ISO para uniformidad en el front
+          sender: {
+            id: result.senderId,
+            // Aquí se podrían incluir más datos si el UC los devolviera
+          },
+          content: result.text,
+          metadata: {
+            hasMention: result.hasMention,
+            mentionedUserIds: result.mentionedUserIds
+          }
+        };
+
+        // Retornar confirmación al remitente vía callback si existe
+        if (callback) callback({ success: true, data: responseData });
+
+        console.log(`[Socket] Mensaje persistido: ${result.messageId} en grupo ${group_id}`);
+
+      } catch (error) {
+        console.error('[Socket] Error persistiendo mensaje:', error);
+        if (callback) callback({ success: false, error: 'Error interno al guardar el mensaje' });
+      }
+    });
+
+    // 3. Manejar la desconexión
     socket.on('disconnect', () => {
       console.log(`[Socket] Usuario ${userId} desconectado de la sala ${study_group_id}`);
     });
