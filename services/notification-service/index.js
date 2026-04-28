@@ -43,6 +43,13 @@ const app = express();
 const server = http.createServer(app);
 app.use(express.json());
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    service: 'notification-service' 
+  });
+});
+
 const PORT = process.env.NOTIFICATION_PORT || 3006;
 
 // ─── POST /notify ─────────────────────────────────────────────

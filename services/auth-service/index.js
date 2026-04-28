@@ -31,8 +31,15 @@ app.use(cors({
   credentials: true
 }));
 
-
 app.use(passport.initialize());
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'auth-service',
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.use('/', createAuthRoutes());
 

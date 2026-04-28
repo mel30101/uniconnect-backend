@@ -141,6 +141,14 @@ const createEventRoutes = require('./src/infrastructure/http/routes/eventRoutes'
 
 app.use(express.json());
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'social-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/groups', createGroupRoutes(groupCtrl));
 app.use('/events', createEventRoutes(eventCtrl));
 

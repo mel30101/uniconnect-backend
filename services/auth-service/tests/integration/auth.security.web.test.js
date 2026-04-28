@@ -8,11 +8,10 @@ const app = require('../../index');
 const TestDatabaseSetup = require('../utils/setupTestDB');
 
 let db;
-const VALID_ORIGIN = 'http://localhost:3000'; // El origen que espera tu index.js
+const VALID_ORIGIN = 'http://localhost:3000'; 
 
 describe('GET /google - Security Headers (Web)', () => {
   beforeAll(async () => {
-    // Agregamos await para asegurar que la BD inicie antes de los tests
     db = await TestDatabaseSetup.initializeTestDB();
   });
 
@@ -25,7 +24,7 @@ describe('GET /google - Security Headers (Web)', () => {
     it.skip('debe incluir headers CORS', async () => {
       const response = await request(app)
         .get('/google') 
-        .set('Origin', VALID_ORIGIN) // <-- CLAVE: Activa el middleware CORS
+        .set('Origin', VALID_ORIGIN) 
         .query({ redirect: VALID_ORIGIN });
 
       expect(response.headers).toHaveProperty('access-control-allow-origin');
@@ -34,7 +33,7 @@ describe('GET /google - Security Headers (Web)', () => {
     it('debe no exponer X-Powered-By header', async () => {
       const response = await request(app)
         .get('/google') 
-        .set('Origin', VALID_ORIGIN) // Mantenemos consistencia
+        .set('Origin', VALID_ORIGIN)
         .query({ redirect: VALID_ORIGIN });
 
       expect(response.headers['x-powered-by']).toBeUndefined();
@@ -79,7 +78,7 @@ describe('GET /google - Security Headers (Web)', () => {
     it.skip('debe incluir allowed origins en CORS durante el GET', async () => {
       const response = await request(app)
         .get('/google') 
-        .set('Origin', VALID_ORIGIN) // <-- CLAVE: Obligatorio para que coincida con la whitelist
+        .set('Origin', VALID_ORIGIN)
         .query({ redirect: VALID_ORIGIN });
 
       expect(response.headers['access-control-allow-origin']).toBeDefined();

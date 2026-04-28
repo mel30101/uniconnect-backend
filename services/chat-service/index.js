@@ -53,6 +53,14 @@ const createGroupChatRoutes = require('./src/infrastructure/http/routes/groupCha
 const app = express();
 app.use(express.json());
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'chat-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/', createChatRoutes(chatCtrl));
 app.use('/groups', createGroupChatRoutes(groupChatCtrl));
 

@@ -39,6 +39,14 @@ const app = express();
 
 app.use(express.json());
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'user-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/profile', createProfileRoutes(profileCtrl));
 app.use('/search', createSearchRoutes(searchCtrl));
 

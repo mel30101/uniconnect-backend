@@ -5,17 +5,16 @@ const db = DatabaseFactory.getDatabase();
 
 describe('Social Service - Criterio 3: Persistencia de Notificaciones', () => {
 
-    let groupId; // Declaramos la variable aquí para que todos los "it" la vean
+    let groupId;
     const adminId = 'profe-admin-456';
 
-    // Este bloque se ejecuta UNA VEZ antes de todos los tests
     beforeAll(async () => {
         const groupRef = await db.collection('groups').add({
             name: 'Grupo de Algoritmos',
             subjectId: 'ALG-101',
             creatorId: adminId
         });
-        groupId = groupRef.id; // Guardamos el ID para los demás tests
+        groupId = groupRef.id;
     });
 
     it('debe persistir una notificación cuando se envía una solicitud de ingreso', async () => {
@@ -70,7 +69,7 @@ describe('Social Service - Criterio 3: Persistencia de Notificaciones', () => {
             const nuevoMiembroId = 'estudiante-invitado-777';
 
             const res = await request(app)
-                .post(`/groups/${groupId}/members`) // Ahora groupId sí está definido
+                .post(`/groups/${groupId}/members`) 
                 .send({
                     userId: nuevoMiembroId,
                     userName: 'Juan Invitado'

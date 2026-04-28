@@ -38,6 +38,14 @@ const createAcademicRoutes = require('./src/infrastructure/http/routes/academicR
 const app = express();
 app.use(express.json());
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'academic-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/', createAcademicRoutes(academicCtrl));
 
 const PORT = process.env.PORT || 3005;
