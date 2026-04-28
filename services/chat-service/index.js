@@ -36,6 +36,11 @@ const sendFileMessageUC = new SendFileMessage(cloudinaryService, sendMessageUC);
 const getMessagesUC = new GetMessages(messageRepo);
 const sendGroupMessageUC = new SendGroupMessage(groupMessageRepo, groupMemberRepo, cloudinaryService);
 
+// Observer Pattern
+const chatSubject = require('./src/application/observer/ChatSubject');
+const { ChatEvents } = require('./src/domain/observer/ISubject');
+const GroupChatObserver = require('./src/infrastructure/observers/GroupChatObserver');
+
 // Controllers
 const ChatController = require('./src/infrastructure/http/controllers/chatController');
 const GroupChatController = require('./src/infrastructure/http/controllers/groupChatController');
@@ -63,7 +68,7 @@ const createGroupChatRoutes = require('./src/infrastructure/http/routes/groupCha
 app.use('/', createChatRoutes(chatCtrl));
 app.use('/groups', createGroupChatRoutes(groupChatCtrl));
 
-// --- TAREA 1: AISLAMIENTO POR SALAS (Socket.io) ---
+// --- SOCKET.IO SETUP ---
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -71,6 +76,10 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+
+// Registrar Observadores (Tarea 3)
+const groupChatObserver = new GroupChatObserver(io);
+chatSubject.attach(groupChatObserver);
 
 io.on('connection', async (socket) => {
   const { userId, study_group_id } = socket.handshake.query;
@@ -83,42 +92,54 @@ io.on('connection', async (socket) => {
   }
 
   try {
-    // 1. Validar ingreso al Room (Criterio de Aceptación 1)
     const isMember = await groupMemberRepo.isMember(study_group_id, userId);
-    
+
     if (!isMember) {
       console.warn(`[Socket] Acceso denegado: Usuario ${userId} no pertenece al grupo ${study_group_id}`);
       return socket.disconnect();
     }
 
-    // 2. Unir a la sala específica (Criterio de Aceptación 2)
     socket.join(study_group_id);
     console.log(`[Socket] Usuario ${userId} unido a la sala: ${study_group_id}`);
 
-    // --- TAREA 2: LISTENER SEND_MESSAGE Y PERSISTENCIA ---
-    socket.on('send_message', async (payload, callback) => {
-      const { sender_id, group_id, content } = payload;
+    // --- TAREA 2 & 3: LISTENER Y NOTIFICACIÓN ---
+    socket.on('send_message', async (rawPayload, callback) => {
+      let payload = rawPayload;
+      
+      // Si el payload llega como string (como está pasando en Thunder Client), lo parseamos
+      if (typeof rawPayload === 'string') {
+        try {
+          payload = JSON.parse(rawPayload);
+        } catch (e) {
+          console.error("[Socket Debug] Error parseando payload string:", e);
+        }
+      }
 
-      // 1. Validación (Criterio 1)
+      const { sender_id, group_id, content } = payload || {};
+      console.log(`[Socket Debug] 1. Payload procesado: sender=${sender_id}, group=${group_id}`);
+
       if (!sender_id || !group_id || !content) {
-        console.warn(`[Socket] Intento de mensaje inválido de ${userId}`);
-        if (callback) callback({ success: false, error: 'sender_id, group_id y content son requeridos.' });
+        console.log(`[Socket Debug] ❌ Error: Campos faltantes en payload`);
+        if (callback) callback({ success: false, error: 'Campos requeridos faltantes' });
         return;
       }
 
       try {
-        // 2. Persistencia en Firestore (Criterio 2)
-        // Reutilizamos el caso de uso existente para mantener la lógica de menciones y estructura
-        const result = await sendGroupMessageUC.execute(group_id, sender_id, { text: content });
+        console.log(`[Socket Debug] 2. Llamando a sendGroupMessageUC.execute...`);
+        
+        // Ejecutamos y capturamos cualquier error específico del UC
+        const result = await sendGroupMessageUC.execute(group_id, sender_id, { text: content })
+          .catch(err => {
+            console.error(`[Socket Debug] ❌ Error DENTRO del UC:`, err);
+            throw err;
+          });
 
-        // 3. Estructura de respuesta (Criterio 3)
+        console.log(`[Socket Debug] 3. Persistencia exitosa, ID: ${result.messageId}`);
+
         const responseData = {
           message_id: result.messageId,
-          timestamp: new Date().toISOString(), // Usamos ISO para uniformidad en el front
-          sender: {
-            id: result.senderId,
-            // Aquí se podrían incluir más datos si el UC los devolviera
-          },
+          timestamp: new Date().toISOString(),
+          sender: { id: result.senderId },
           content: result.text,
           metadata: {
             hasMention: result.hasMention,
@@ -126,18 +147,24 @@ io.on('connection', async (socket) => {
           }
         };
 
-        // Retornar confirmación al remitente vía callback si existe
-        if (callback) callback({ success: true, data: responseData });
+        if (callback) {
+          console.log(`[Socket Debug] 4. Enviando callback de éxito al cliente`);
+          callback({ success: true, data: responseData });
+        }
 
-        console.log(`[Socket] Mensaje persistido: ${result.messageId} en grupo ${group_id}`);
+        console.log(`[Socket Debug] 5. Notificando a observadores (Observer Pattern)`);
+        chatSubject.notify(ChatEvents.NUEVO_MENSAJE, {
+          groupId: group_id,
+          message: responseData
+        });
+        console.log(`[Socket Debug] ✅ Flujo completado para mensaje ${result.messageId}`);
 
       } catch (error) {
-        console.error('[Socket] Error persistiendo mensaje:', error);
-        if (callback) callback({ success: false, error: 'Error interno al guardar el mensaje' });
+        console.error('[Socket Debug] ❌ ERROR FATAL en flujo send_message:', error);
+        if (callback) callback({ success: false, error: error.message });
       }
     });
 
-    // 3. Manejar la desconexión
     socket.on('disconnect', () => {
       console.log(`[Socket] Usuario ${userId} desconectado de la sala ${study_group_id}`);
     });
@@ -150,5 +177,5 @@ io.on('connection', async (socket) => {
 
 const PORT = process.env.PORT || 3004;
 server.listen(PORT, () => {
-  console.log(`💬 Chat Service listo en puerto ${PORT} (Socket.io & Cloudinary activo)`);
+  console.log(`💬 Chat Service listo en puerto ${PORT} (Observer Pattern & Socket.io activo)`);
 });

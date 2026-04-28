@@ -6,18 +6,23 @@ class FirestoreGroupMessageRepository {
   }
 
   async create(groupId, messageData) {
-    const docRef = await this.db
-      .collection('groups')
-      .doc(groupId)
-      .collection('messages')
-      .add({
-        ...messageData,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    
-    // Opcional: Actualizar el último mensaje en el group_members o en el group
-    // dependiento cómo el front muestre los chats de grupo
-    return docRef.id;
+    console.log(`[DB Debug] Intentando crear mensaje para grupo: ${groupId}`);
+    try {
+      const docRef = await this.db
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .add({
+          ...messageData,
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      
+      console.log(`[DB Debug] Mensaje creado con ID: ${docRef.id}`);
+      return docRef.id;
+    } catch (error) {
+      console.error(`[DB Debug] ERROR al crear mensaje en Firestore:`, error);
+      throw error;
+    }
   }
 }
 
