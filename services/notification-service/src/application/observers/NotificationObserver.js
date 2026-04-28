@@ -55,6 +55,26 @@ class NotificationObserver {
     });
   }
 
+  async onAdminTransferRequested(userId, requesterName, groupName, groupId) {
+    return this.sendNotificationUseCase.execute({
+      userId,
+      title: 'Solicitud de Administración',
+      body: `${requesterName} te ha solicitado ser el administrador del grupo "${groupName}"`,
+      metadata: { groupId, type: 'admin_transfer_requested' },
+      type: 'group'
+    });
+  }
+
+  async onAdminTransferAccepted(userId, acceptorName, groupName, groupId) {
+    return this.sendNotificationUseCase.execute({
+      userId,
+      title: 'Transferencia de Administración Aceptada',
+      body: `${acceptorName} ha aceptado ser el administrador del grupo "${groupName}"`,
+      metadata: { groupId, type: 'admin_transfer_accepted' },
+      type: 'group'
+    });
+  }
+
   async onNewEvent(userId, categoryName, eventTitle, eventId) {
     return this.sendNotificationUseCase.execute({
       userId,

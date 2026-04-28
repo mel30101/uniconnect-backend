@@ -72,6 +72,16 @@ app.post('/notify', async (req, res) => {
           payload.userId, payload.groupName, payload.groupId
         );
         break;
+      case 'TRANSFER_ADMIN_SOLICITADA':
+        result = await notificationObserver.onAdminTransferRequested(
+          payload.userId, payload.userName, payload.groupName, payload.groupId
+        );
+        break;
+      case 'TRANSFER_ADMIN_ACEPTADA':
+        result = await notificationObserver.onAdminTransferAccepted(
+          payload.userId, payload.userName, payload.groupName, payload.groupId
+        );
+        break;
       case 'MENCION':
         result = await notificationObserver.onMention(
           payload.userId, payload.senderName, payload.groupName, payload.message, payload.groupId
