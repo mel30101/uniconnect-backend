@@ -15,8 +15,9 @@ class GroupController {
     this.addMemberUC = useCases.addMember;
     this.leaveGroupUC = useCases.leaveGroup;
     this.getAvailableStudentsUC = useCases.getAvailableStudents;
-    this.leaveGroupUC = useCases.leaveGroup;
     this.deleteUserRequestsUC = useCases.deleteUserRequests;
+    this.requestAdminTransferUC = useCases.requestAdminTransfer;
+    this.handleAdminTransferResponseUC = useCases.handleAdminTransferResponse;
   }
 
   createGroup = asyncHandler(async (req, res, next) => {
@@ -74,6 +75,18 @@ class GroupController {
     const { adminId, newAdminId } = req.body;
     await this.transferAdminUC.execute(req.params.id, adminId, newAdminId);
     res.status(200).json({ message: "Administración cedida con éxito." });
+  });
+
+  requestAdminTransfer = asyncHandler(async (req, res, next) => {
+    const { adminId, candidateId } = req.body;
+    const result = await this.requestAdminTransferUC.execute(req.params.id, adminId, candidateId);
+    res.status(200).json(result);
+  });
+
+  handleAdminTransferResponse = asyncHandler(async (req, res, next) => {
+    const { candidateId, action } = req.body;
+    const result = await this.handleAdminTransferResponseUC.execute(req.params.id, candidateId, action);
+    res.status(200).json(result);
   });
 
   addMember = asyncHandler(async (req, res, next) => {

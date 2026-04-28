@@ -30,6 +30,8 @@ function createGroupRoutes(controller) {
 
   // Transferir administración
   router.put('/:id/transfer-admin', controller.transferAdmin);
+  router.post('/:id/transfer-admin/request', controller.requestAdminTransfer);
+  router.post('/:id/transfer-admin/response', controller.handleAdminTransferResponse);
   
   router.post('/:id/requests', controller.sendJoinRequest);
   router.get('/:id/requests', controller.getGroupRequests);

@@ -79,6 +79,8 @@ const AddMember = require('./src/application/use-cases/group/addMember');
 const LeaveGroup = require('./src/application/use-cases/group/leaveGroup');
 const GetAvailableStudents = require('./src/application/use-cases/group/getAvailableStudents');
 const DeleteUserRequests = require('./src/application/use-cases/group/deleteUserRequests');
+const RequestAdminTransfer = require('./src/application/use-cases/group/requestAdminTransfer');
+const HandleAdminTransferResponse = require('./src/application/use-cases/group/handleAdminTransferResponse');
 const GetEvents = require('./src/application/use-cases/event/GetEvents');
 const GetCategories = require('./src/application/use-cases/event/GetCategories');
 const SubscribeToCategory = require('./src/application/use-cases/event/SubscribeToCategory');
@@ -96,9 +98,11 @@ const handleRequestActionUC = new HandleRequestAction(groupMemberRepo, groupRequ
 const removeMemberUC = new RemoveMember(groupMemberRepo);
 const transferAdminUC = new TransferAdmin(groupRepo, groupMemberRepo, db, studyGroupSubject);
 const addMemberUC = new AddMember(groupMemberRepo);
-const leaveGroupUC = new LeaveGroup(groupMemberRepo);
+const leaveGroupUC = new LeaveGroup(groupMemberRepo, groupRepo);
 const getAvailableStudentsUC = new GetAvailableStudents(groupMemberRepo, userRepo);
 const deleteUserRequestsUC = new DeleteUserRequests(groupRequestRepo);
+const requestAdminTransferUC = new RequestAdminTransfer(groupRepo, groupMemberRepo, userRepo, db, studyGroupSubject);
+const handleAdminTransferResponseUC = new HandleAdminTransferResponse(groupRepo, groupMemberRepo, userRepo, db, studyGroupSubject);
 const getEventsUC = new GetEvents(eventRepo, categoryRepo);
 const getCategoriesUC = new GetCategories(categoryRepo);
 const subscribeToCategoryUC = new SubscribeToCategory(subscriptionRepo);
@@ -123,7 +127,9 @@ const groupCtrl = new GroupController({
   addMember: addMemberUC,
   leaveGroup: leaveGroupUC,
   getAvailableStudents: getAvailableStudentsUC,
-  deleteUserRequests: deleteUserRequestsUC
+  deleteUserRequests: deleteUserRequestsUC,
+  requestAdminTransfer: requestAdminTransferUC,
+  handleAdminTransferResponse: handleAdminTransferResponseUC
 });
 
 const eventCtrl = new EventController({
