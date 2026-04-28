@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "install-all": "npm install",
-    "dev": "concurrently -n \"GATEWAY,AUTH,USER,SOCIAL,CHAT,ACAD\" -c \"magenta,blue,green,yellow,cyan,white\" \"npm run dev --workspace=gateway\" \"npm run dev --workspace=services/auth-service\" \"npm run dev --workspace=services/user-service\" \"npm run dev --workspace=services/social-service\" \"npm run dev --workspace=services/chat-service\" \"npm run dev --workspace=services/academic-service\""
+    "dev": "concurrently -n \"GATEWAY,AUTH,USER,SOCIAL,CHAT,ACAD,NOTIF\" -c \"magenta,blue,green,yellow,cyan,white,red\" \"npm run dev --workspace=gateway\" \"npm run dev --workspace=services/auth-service\" \"npm run dev --workspace=services/user-service\" \"npm run dev --workspace=services/social-service\" \"npm run dev --workspace=services/chat-service\" \"npm run dev --workspace=services/academic-service\" \"npm run dev --workspace=services/notification-service\""
   },
   "license": "ISC",
   "type": "commonjs",

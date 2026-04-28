@@ -28,6 +28,7 @@ const catalogRepo = new FirestoreAcademicCatalogRepository(db);
 const studyGroupSubject = require('./src/application/observer/GrupoEstudioSubject');
 const PersistenciaNotificacionObserver = require('./src/infrastructure/observers/PersistenciaNotificacionObserver');
 const WebSocketNotificationObserver = require('./src/infrastructure/observers/WebSocketNotificationObserver');
+const PushNotificationObserver = require('./src/infrastructure/observers/PushNotificationObserver');
 
 // Setup Express y HTTP Server para Sockets
 const app = express();
@@ -42,9 +43,11 @@ const io = new Server(server, {
 // Inicializar y Registrar Observers
 const persistenceObserver = new PersistenciaNotificacionObserver(db);
 const wsObserver = new WebSocketNotificationObserver(io);
+const pushObserver = new PushNotificationObserver(process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006');
 
 studyGroupSubject.attach(persistenceObserver);
 studyGroupSubject.attach(wsObserver);
+studyGroupSubject.attach(pushObserver);
 
 console.log('✅ Sistema de Notificaciones (Observer) inicializado y registrado.');
 
