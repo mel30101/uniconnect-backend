@@ -140,11 +140,9 @@ io.on('connection', async (socket) => {
           message_id: result.messageId,
           timestamp: new Date().toISOString(),
           sender: { id: result.senderId },
-          content: result.text,
-          metadata: {
-            hasMention: result.hasMention,
-            mentionedUserIds: result.mentionedUserIds
-          }
+          content: result.content,
+          renderedContent: result.renderedContent,
+          metadata: result
         };
 
         if (callback) {

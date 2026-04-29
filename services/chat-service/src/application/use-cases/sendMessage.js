@@ -1,3 +1,6 @@
+const MensajeBase = require('../../domain/MensajeBase');
+const MensajeConArchivo = require('../../domain/decorators/MensajeConArchivo');
+
 class SendMessage {
   constructor(messageRepo, chatRepo) {
     this.messageRepo = messageRepo;
@@ -8,14 +11,32 @@ class SendMessage {
     const isObject = typeof messageData === 'object' && messageData !== null;
     const data = isObject ? messageData : { text: messageData, type: 'text' };
 
-    // Crear el mensaje
-    await this.messageRepo.create(chatId, {
+    // 1. Crear instancia base
+    let message = new MensajeBase(data.text || '', { 
+      senderId, 
+      type: data.type || 'text' 
+    });
+
+    // 2. Decorar si es archivo
+    if (data.type === 'file' && data.fileUrl) {
+      message = new MensajeConArchivo(message, {
+        url: data.fileUrl,
+        fileName: data.fileName,
+        mimeType: data.mimeType || 'application/octet-stream',
+        tamano: data.tamano || 0
+      });
+    }
+
+    // 3. Guardar en Base de Datos
+    const payload = {
       senderId,
       type: data.type || 'text',
-      text: data.text || '',
-      fileUrl: data.fileUrl,
-      fileName: data.fileName
-    });
+      text: message.getContenido(),
+      renderedContent: message.render(),
+      metadata: message.getMetadata()
+    };
+
+    await this.messageRepo.create(chatId, payload);
 
     // Actualizar el último mensaje del chat
     const summaryText = data.type === 'file'
@@ -23,6 +44,8 @@ class SendMessage {
       : data.text;
 
     await this.chatRepo.updateLastMessage(chatId, summaryText);
+
+    return payload;
   }
 }
 
