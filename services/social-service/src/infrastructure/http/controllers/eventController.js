@@ -20,31 +20,54 @@ class EventController {
     res.status(200).json(categories);
   });
 
+  /**
+   * POST /eventos/suscribir
+   * Body: { userId, categoryId }
+   * 201 → suscripción creada
+   * 409 → ya estaba suscrito
+   */
   subscribe = asyncHandler(async (req, res) => {
     const { userId, categoryId } = req.body;
     if (!userId || !categoryId) {
       return res.status(400).json({ error: 'Faltan parámetros (userId, categoryId)' });
     }
-    await this.subscribeToCategoryUC.execute(userId, categoryId);
-    res.status(200).json({ message: 'Suscripción exitosa' });
+
+    try {
+      await this.subscribeToCategoryUC.execute(userId, categoryId);
+      return res.status(201).json({ message: 'Suscripción creada exitosamente' });
+    } catch (err) {
+      if (err.code === 'ALREADY_SUBSCRIBED') {
+        return res.status(409).json({ error: 'El estudiante ya está suscrito a esta categoría' });
+      }
+      throw err; // propaga al error middleware
+    }
   });
 
+  /**
+   * DELETE /eventos/suscribir
+   * Body: { userId, categoryId }
+   * 204 → eliminado (sin cuerpo)
+   */
   unsubscribe = asyncHandler(async (req, res) => {
     const { userId, categoryId } = req.body;
     if (!userId || !categoryId) {
       return res.status(400).json({ error: 'Faltan parámetros (userId, categoryId)' });
     }
     await this.unsubscribeFromCategoryUC.execute(userId, categoryId);
-    res.status(200).json({ message: 'Desuscripción exitosa' });
+    return res.status(204).send();
   });
 
+  /**
+   * GET /eventos/suscripciones/:userId
+   * 200 → lista de categoryIds suscritas
+   */
   getSubscribedCategories = asyncHandler(async (req, res) => {
     const { userId } = req.params;
     if (!userId) {
       return res.status(400).json({ error: 'Falta userId' });
     }
     const subscriptions = await this.getSubscribedCategoriesUC.execute(userId);
-    res.status(200).json(subscriptions);
+    return res.status(200).json(subscriptions);
   });
 }
 
