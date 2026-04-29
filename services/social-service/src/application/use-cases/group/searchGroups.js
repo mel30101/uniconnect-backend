@@ -1,7 +1,8 @@
 class SearchGroups {
-  constructor(groupRepo, groupMemberRepo, catalogRepo, userRepo) {
+  constructor(groupRepo, groupMemberRepo, groupRequestRepo, catalogRepo, userRepo) {
     this.groupRepo = groupRepo;
     this.groupMemberRepo = groupMemberRepo;
+    this.groupRequestRepo = groupRequestRepo;
     this.catalogRepo = catalogRepo;
     this.userRepo = userRepo;
   }
@@ -71,10 +72,26 @@ class SearchGroups {
       const memberUsers = await this.userRepo.findByIds(memberIds);
       const memberNames = memberUsers.map(u => u.exists !== false ? u.name : 'Usuario desconocido');
 
+      let userStatus = 'none';
+      if (userId) {
+        if (group.creatorId === userId) {
+          userStatus = 'admin';
+        } else if (memberIds.includes(userId)) {
+          userStatus = 'member';
+        } else {
+          // Check for pending/rejected requests
+          const request = await this.groupRequestRepo.findByGroupAndUser(group.id, userId);
+          if (request) {
+            userStatus = request.status || 'pending';
+          }
+        }
+      }
+
       return {
         ...group,
         adminName,
-        members: memberNames
+        members: memberNames,
+        userStatus
       };
     }));
 
