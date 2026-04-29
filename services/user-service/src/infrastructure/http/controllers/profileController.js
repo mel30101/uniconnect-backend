@@ -4,10 +4,18 @@ class ProfileController {
   constructor(useCases) {
     this.getFullProfileUC = useCases.getFullProfile;
     this.saveAcademicProfileUC = useCases.saveAcademicProfile;
+    this.getDecoratedProfileUC = useCases.getDecoratedProfile;
   }
 
   getProfile = asyncHandler(async (req, res) => {
-    const profile = await this.getFullProfileUC.execute(req.params.studentId);
+    // Retorna unicamente el perfil base (sin costo computacional extra)
+    const profile = await this.getDecoratedProfileUC.execute(req.params.studentId, 'base');
+    res.status(200).json(profile);
+  });
+
+  getDecoratedProfile = asyncHandler(async (req, res) => {
+    const vista = req.query.vista;
+    const profile = await this.getDecoratedProfileUC.execute(req.params.studentId, vista);
     res.status(200).json(profile);
   });
 
