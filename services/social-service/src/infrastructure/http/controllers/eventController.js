@@ -20,7 +20,7 @@ class EventController {
   });
 
   getEvents = asyncHandler(async (req, res) => {
-    const { categoryId } = req.query;
+    const categoryId = req.query.category || req.query.categoryId;
     const events = await this.getEventsUC.execute({ categoryId });
     res.status(200).json(events);
   });
