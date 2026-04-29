@@ -7,7 +7,17 @@ class EventController {
     this.subscribeToCategoryUC = useCases.subscribeToCategory;
     this.unsubscribeFromCategoryUC = useCases.unsubscribeFromCategory;
     this.getSubscribedCategoriesUC = useCases.getSubscribedCategories;
+    this.createEventUC = useCases.createEvent;
   }
+
+  createEvent = asyncHandler(async (req, res) => {
+    const eventData = req.body;
+    if (!eventData.title || !eventData.type) {
+      return res.status(400).json({ error: 'Faltan parámetros obligatorios (title, type)' });
+    }
+    const event = await this.createEventUC.execute(eventData);
+    res.status(201).json(event);
+  });
 
   getEvents = asyncHandler(async (req, res) => {
     const { categoryId } = req.query;

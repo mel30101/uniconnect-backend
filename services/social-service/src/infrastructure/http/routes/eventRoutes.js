@@ -5,6 +5,7 @@ function createEventRoutes(controller) {
 
   // Consulta y creación de eventos
   router.get('/', controller.getEvents);
+  router.post('/', controller.createEvent);
   router.get('/categories', controller.getCategories);
 
   // Gestión de suscripciones a categorías

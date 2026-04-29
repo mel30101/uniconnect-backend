@@ -26,9 +26,11 @@ const catalogRepo = new FirestoreAcademicCatalogRepository(db);
 
 // --- INFRAESTRUCTURA OBSERVER ---
 const studyGroupSubject = require('./src/application/observer/GrupoEstudioSubject');
+const eventoUniversidadSubject = require('./src/application/observer/EventoUniversidadSubject');
 const PersistenciaNotificacionObserver = require('./src/infrastructure/observers/PersistenciaNotificacionObserver');
 const WebSocketNotificationObserver = require('./src/infrastructure/observers/WebSocketNotificationObserver');
 const PushNotificationObserver = require('./src/infrastructure/observers/PushNotificationObserver');
+const EventoUniversidadObserver = require('./src/infrastructure/observers/EventoUniversidadObserver');
 
 // Setup Express y HTTP Server para Sockets
 const app = express();
@@ -48,6 +50,9 @@ const pushObserver = new PushNotificationObserver(process.env.NOTIFICATION_SERVI
 studyGroupSubject.attach(persistenceObserver);
 studyGroupSubject.attach(wsObserver);
 studyGroupSubject.attach(pushObserver);
+
+const eventoObserver = new EventoUniversidadObserver(io, db, subscriptionRepo);
+eventoUniversidadSubject.attach(eventoObserver);
 
 console.log('✅ Sistema de Notificaciones (Observer) inicializado y registrado.');
 
@@ -82,6 +87,7 @@ const DeleteUserRequests = require('./src/application/use-cases/group/deleteUser
 const RequestAdminTransfer = require('./src/application/use-cases/group/requestAdminTransfer');
 const HandleAdminTransferResponse = require('./src/application/use-cases/group/handleAdminTransferResponse');
 const GetEvents = require('./src/application/use-cases/event/GetEvents');
+const CreateEvent = require('./src/application/use-cases/event/CreateEvent');
 const GetCategories = require('./src/application/use-cases/event/GetCategories');
 const SubscribeToCategory = require('./src/application/use-cases/event/SubscribeToCategory');
 const UnsubscribeFromCategory = require('./src/application/use-cases/event/UnsubscribeFromCategory');
@@ -104,6 +110,7 @@ const deleteUserRequestsUC = new DeleteUserRequests(groupRequestRepo);
 const requestAdminTransferUC = new RequestAdminTransfer(groupRepo, groupMemberRepo, userRepo, db, studyGroupSubject);
 const handleAdminTransferResponseUC = new HandleAdminTransferResponse(groupRepo, groupMemberRepo, userRepo, db, studyGroupSubject);
 const getEventsUC = new GetEvents(eventRepo, categoryRepo);
+const createEventUC = new CreateEvent(eventRepo, eventoUniversidadSubject);
 const getCategoriesUC = new GetCategories(categoryRepo);
 const subscribeToCategoryUC = new SubscribeToCategory(subscriptionRepo);
 const unsubscribeFromCategoryUC = new UnsubscribeFromCategory(subscriptionRepo);
@@ -134,6 +141,7 @@ const groupCtrl = new GroupController({
 
 const eventCtrl = new EventController({
   getEvents: getEventsUC,
+  createEvent: createEventUC,
   getCategories: getCategoriesUC,
   subscribeToCategory: subscribeToCategoryUC,
   unsubscribeFromCategory: unsubscribeFromCategoryUC,
