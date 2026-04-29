@@ -1,6 +1,16 @@
 version: '3.8'
 
 services:
+  gateway:
+    build: ./gateway
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    env_file: ./gateway/.env
+    depends_on:
+      - auth-service
+      - user-service
+
   auth-service:
     build: ./services/auth-service
     container_name: auth-service
@@ -42,3 +52,19 @@ services:
     ports:
       - "3006:3006"
     env_file: ./services/notification-service/.env
+
+  # --- AHORA SÍ, AL MISMO NIVEL QUE LOS DEMÁS ---
+  frontend-app:
+    build:
+      context: ../../uniconnect_g3
+      dockerfile: Dockerfile
+    container_name: frontend-app
+    ports:
+      - "8081:8081"
+    volumes:
+      - ../../uniconnect_g3:/app 
+      - /app/node_modules
+    environment:
+      - EXPO_PUBLIC_BACKEND_URL=https://corrine-hirudinoid-ayleen.ngrok-free.dev
+    depends_on:
+      - gateway # Se usa el nombre del servicio definido arriba

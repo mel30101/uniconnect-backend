@@ -8,7 +8,7 @@ const app = express();
 app.use(cors({
     origin: [
         process.env.DASHBOARD_URL, // http://localhost:8081
-        "https://andrea-ministrative-nonharmoniously.ngrok-free.dev" // El ngrok actual de la app móvil
+        "https://corrine-hirudinoid-ayleen.ngrok-free.dev" // El ngrok actual de la app móvil
     ],
     credentials: true
 }));
@@ -140,6 +140,13 @@ app.get('/status', (req, res) => {
     res.json({ status: 'Gateway Operativo', timestamp: new Date() });
 });
 
+app.get('/status', (req, res) => {
+    res.json({ 
+        status: 'Gateway Operativo', 
+        entorno: 'Docker',
+        timestamp: new Date() 
+    });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
