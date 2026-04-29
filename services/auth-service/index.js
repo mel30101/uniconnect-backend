@@ -41,7 +41,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.use('/', createAuthRoutes());
+app.use('/auth', createAuthRoutes());
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3001;
