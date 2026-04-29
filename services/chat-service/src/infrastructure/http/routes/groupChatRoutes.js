@@ -6,9 +6,12 @@ function createGroupChatRoutes(controller) {
 
   // Enviar mensaje de texto al grupo
   router.post('/:groupId/messages', controller.sendMessage);
-  
+
   // Enviar archivo al grupo (soporta adjuntos multimedia)
   router.post('/:groupId/files', upload.single('file'), controller.sendFileMessage);
+
+  // Reaccionar a un mensaje del grupo
+  router.post('/:groupId/messages/:messageId/reactions', controller.addGroupReaction);
 
   return router;
 }

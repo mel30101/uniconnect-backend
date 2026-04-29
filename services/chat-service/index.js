@@ -29,12 +29,22 @@ const SendMessage = require('./src/application/use-cases/sendMessage');
 const SendFileMessage = require('./src/application/use-cases/sendFileMessage');
 const GetMessages = require('./src/application/use-cases/getMessages');
 const SendGroupMessage = require('./src/application/use-cases/sendGroupMessage');
+const AddReaction = require('./src/application/use-cases/addReaction');
+const AddGroupReaction = require('./src/application/use-cases/addGroupReaction');
+
+// --- SOCKET HELPER ---
+const socketService = {
+  emitToChat: (chatId, event, data) => io.to(chatId).emit(event, data),
+  emitToGroup: (groupId, event, data) => io.to(groupId).emit(event, data),
+};
 
 const getOrCreateChatUC = new GetOrCreateChat(chatRepo);
 const sendMessageUC = new SendMessage(messageRepo, chatRepo);
 const sendFileMessageUC = new SendFileMessage(cloudinaryService, sendMessageUC);
 const getMessagesUC = new GetMessages(messageRepo);
 const sendGroupMessageUC = new SendGroupMessage(groupMessageRepo, groupMemberRepo, cloudinaryService);
+const addReactionUC = new AddReaction(messageRepo, socketService);
+const addGroupReactionUC = new AddGroupReaction(groupMessageRepo, socketService);
 
 // Observer Pattern
 const chatSubject = require('./src/application/observer/ChatSubject');
@@ -49,11 +59,13 @@ const chatCtrl = new ChatController({
   getOrCreateChat: getOrCreateChatUC,
   sendMessage: sendMessageUC,
   sendFileMessage: sendFileMessageUC,
-  getMessages: getMessagesUC
+  getMessages: getMessagesUC,
+  addReaction: addReactionUC
 });
 
 const groupChatCtrl = new GroupChatController({
-  sendGroupMessage: sendGroupMessageUC
+  sendGroupMessage: sendGroupMessageUC,
+  addGroupReaction: addGroupReactionUC
 });
 
 // Setup Express

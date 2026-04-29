@@ -8,6 +8,7 @@ function createChatRoutes(controller) {
   router.post('/:chatId/messages', controller.sendMessage);
   router.get('/:chatId/messages', controller.getMessage);
   router.post('/:chatId/files', upload.single('file'), controller.sendFileMessage);
+  router.post('/:chatId/messages/:messageId/reactions', controller.addReaction);
 
   return router;
 }
