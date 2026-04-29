@@ -84,93 +84,110 @@ chatSubject.attach(groupChatObserver);
 io.on('connection', async (socket) => {
   const { userId, study_group_id } = socket.handshake.query;
 
-  console.log(`[Socket] Intento de conexión: Usuario ${userId} para grupo ${study_group_id}`);
+  console.log(`[Socket] Nuevo intento de conexión. Usuario: ${userId}, Grupo Inicial: ${study_group_id}`);
 
-  if (!userId || !study_group_id) {
-    console.error('[Socket] Falta userId o study_group_id');
+  if (!userId) {
+    console.error('[Socket] Falta userId en la conexión');
     return socket.disconnect();
   }
 
-  try {
-    const isMember = await groupMemberRepo.isMember(study_group_id, userId);
+  // Guardar userId en el socket
+  socket.userId = userId;
 
-    if (!isMember) {
-      console.warn(`[Socket] Acceso denegado: Usuario ${userId} no pertenece al grupo ${study_group_id}`);
-      return socket.disconnect();
+  // Si viene con un grupo en el handshake, lo unimos
+  if (study_group_id) {
+    try {
+      const isMember = await groupMemberRepo.isMember(study_group_id, userId);
+      if (isMember) {
+        socket.join(study_group_id);
+        console.log(`[Socket] Usuario ${userId} unido a la sala (handshake): ${study_group_id}`);
+      }
+    } catch (err) {
+      console.error("[Socket] Error uniendo a sala inicial:", err);
+    }
+  }
+
+  // Listener para unirse a grupos dinámicamente (Requerido para el frontend)
+  socket.on('join_group', async ({ groupId, userId: eventUserId }) => {
+    const uid = eventUserId || socket.userId;
+    console.log(`[Socket] Solicitud join_group: Usuario ${uid} -> Grupo ${groupId}`);
+
+    try {
+      const isMember = await groupMemberRepo.isMember(groupId, uid);
+      if (isMember) {
+        socket.join(groupId);
+        console.log(`[Socket] Usuario ${uid} unido con éxito a la sala: ${groupId}`);
+      } else {
+        console.warn(`[Socket] Acceso denegado: ${uid} no es miembro de ${groupId}`);
+      }
+    } catch (error) {
+      console.error("[Socket] Error en join_group:", error);
+    }
+  });
+
+  socket.on('leave_group', ({ groupId }) => {
+    socket.leave(groupId);
+    console.log(`[Socket] Usuario ${socket.userId} salió de la sala: ${groupId}`);
+  });
+
+  // --- ESCUCHAR MENSAJES ---
+  socket.on('send_message', async (rawPayload, callback) => {
+    let payload = rawPayload;
+
+    // Si el payload llega como string, lo parseamos
+    if (typeof rawPayload === 'string') {
+      try {
+        payload = JSON.parse(rawPayload);
+      } catch (e) {
+        console.error("[Socket Debug] Error parseando payload string:", e);
+      }
     }
 
-    socket.join(study_group_id);
-    console.log(`[Socket] Usuario ${userId} unido a la sala: ${study_group_id}`);
+    const { sender_id, group_id, content } = payload || {};
+    console.log(`[Socket Debug] 1. Payload procesado: sender=${sender_id}, group=${group_id}`);
 
-    // --- TAREA 2 & 3: LISTENER Y NOTIFICACIÓN ---
-    socket.on('send_message', async (rawPayload, callback) => {
-      let payload = rawPayload;
-      
-      // Si el payload llega como string (como está pasando en Thunder Client), lo parseamos
-      if (typeof rawPayload === 'string') {
-        try {
-          payload = JSON.parse(rawPayload);
-        } catch (e) {
-          console.error("[Socket Debug] Error parseando payload string:", e);
-        }
+    if (!sender_id || !group_id || !content) {
+      console.log(`[Socket Debug] Error: Campos faltantes en payload`);
+      if (callback) callback({ success: false, error: 'Campos requeridos faltantes' });
+      return;
+    }
+
+    try {
+      console.log(`[Socket Debug] 2. Llamando a sendGroupMessageUC.execute...`);
+
+      const result = await sendGroupMessageUC.execute(group_id, sender_id, { text: content });
+
+      console.log(`[Socket Debug] 3. Persistencia exitosa, ID: ${result.messageId}`);
+
+      const responseData = {
+        message_id: result.messageId,
+        timestamp: new Date().toISOString(),
+        sender: { id: result.senderId },
+        content: result.content,
+        renderedContent: result.renderedContent,
+        metadata: result
+      };
+
+      if (callback) {
+        console.log(`[Socket Debug] 4. Enviando callback de éxito al cliente`);
+        callback({ success: true, data: responseData });
       }
 
-      const { sender_id, group_id, content } = payload || {};
-      console.log(`[Socket Debug] 1. Payload procesado: sender=${sender_id}, group=${group_id}`);
+      console.log(`[Socket Debug] 5. Notificando a observadores (Observer Pattern)`);
+      chatSubject.notify(ChatEvents.NUEVO_MENSAJE, {
+        groupId: group_id,
+        message: responseData
+      });
 
-      if (!sender_id || !group_id || !content) {
-        console.log(`[Socket Debug] ❌ Error: Campos faltantes en payload`);
-        if (callback) callback({ success: false, error: 'Campos requeridos faltantes' });
-        return;
-      }
+    } catch (error) {
+      console.error('[Socket Debug] ❌ ERROR en flujo send_message:', error);
+      if (callback) callback({ success: false, error: error.message });
+    }
+  });
 
-      try {
-        console.log(`[Socket Debug] 2. Llamando a sendGroupMessageUC.execute...`);
-        
-        // Ejecutamos y capturamos cualquier error específico del UC
-        const result = await sendGroupMessageUC.execute(group_id, sender_id, { text: content })
-          .catch(err => {
-            console.error(`[Socket Debug] ❌ Error DENTRO del UC:`, err);
-            throw err;
-          });
-
-        console.log(`[Socket Debug] 3. Persistencia exitosa, ID: ${result.messageId}`);
-
-        const responseData = {
-          message_id: result.messageId,
-          timestamp: new Date().toISOString(),
-          sender: { id: result.senderId },
-          content: result.content,
-          renderedContent: result.renderedContent,
-          metadata: result
-        };
-
-        if (callback) {
-          console.log(`[Socket Debug] 4. Enviando callback de éxito al cliente`);
-          callback({ success: true, data: responseData });
-        }
-
-        console.log(`[Socket Debug] 5. Notificando a observadores (Observer Pattern)`);
-        chatSubject.notify(ChatEvents.NUEVO_MENSAJE, {
-          groupId: group_id,
-          message: responseData
-        });
-        console.log(`[Socket Debug] ✅ Flujo completado para mensaje ${result.messageId}`);
-
-      } catch (error) {
-        console.error('[Socket Debug] ❌ ERROR FATAL en flujo send_message:', error);
-        if (callback) callback({ success: false, error: error.message });
-      }
-    });
-
-    socket.on('disconnect', () => {
-      console.log(`[Socket] Usuario ${userId} desconectado de la sala ${study_group_id}`);
-    });
-
-  } catch (error) {
-    console.error('[Socket] Error en la conexión:', error);
-    socket.disconnect();
-  }
+  socket.on('disconnect', () => {
+    console.log(`[Socket] Usuario ${userId} desconectado`);
+  });
 });
 
 const PORT = process.env.PORT || 3004;

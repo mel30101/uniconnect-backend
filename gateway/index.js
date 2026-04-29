@@ -59,6 +59,11 @@ app.use('/api/chat', createProxyMiddleware({
         onProxyRes(proxyRes);
     },
     onProxyReq: (proxyReq, req, res) => {
+        // No re-serializar el body si es multipart/form-data (archivos)
+        const contentType = req.headers['content-type'] || '';
+        if (contentType.includes('multipart/form-data')) {
+            return; // Dejar que el stream pase sin modificar
+        }
         if (req.body) {
             const bodyData = JSON.stringify(req.body);
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
@@ -75,6 +80,11 @@ app.use('/api/group-chats', createProxyMiddleware({
         onProxyRes(proxyRes);
     },
     onProxyReq: (proxyReq, req, res) => {
+        // No re-serializar el body si es multipart/form-data (archivos)
+        const contentType = req.headers['content-type'] || '';
+        if (contentType.includes('multipart/form-data')) {
+            return; // Dejar que el stream pase sin modificar
+        }
         if (req.body) {
             const bodyData = JSON.stringify(req.body);
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));

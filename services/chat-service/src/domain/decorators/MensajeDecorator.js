@@ -21,6 +21,14 @@ class MensajeDecorator extends IMensaje {
   render() {
     return this.mensaje.render();
   }
+
+  toJSON() {
+    return {
+      ...this.getMetadata(),
+      content: this.getContenido(),
+      renderedContent: this.render()
+    };
+  }
 }
 
 module.exports = MensajeDecorator;
