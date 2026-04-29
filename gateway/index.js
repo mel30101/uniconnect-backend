@@ -6,11 +6,9 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
 app.use(cors({
-    origin: [
-        process.env.DASHBOARD_URL, // http://localhost:8081
-        "https://andrea-ministrative-nonharmoniously.ngrok-free.dev" // El ngrok actual de la app móvil
-    ],
-    credentials: true
+    origin: '*',
+    allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
 
