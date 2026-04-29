@@ -89,8 +89,8 @@ const GetSubscribedCategories = require('./src/application/use-cases/event/GetSu
 
 const createGroupUC = new CreateGroup(groupRepo, groupMemberRepo);
 const getUserGroupsUC = new GetUserGroups(groupMemberRepo, groupRepo, catalogRepo, userRepo);
-const getGroupByIdUC = new GetGroupById(groupRepo, groupMemberRepo, catalogRepo, userRepo);
-const searchGroupsUC = new SearchGroups(groupRepo, groupMemberRepo, catalogRepo, userRepo);
+const getGroupByIdUC = new GetGroupById(groupRepo, groupMemberRepo, groupRequestRepo, catalogRepo, userRepo);
+const searchGroupsUC = new SearchGroups(groupRepo, groupMemberRepo, groupRequestRepo, catalogRepo, userRepo);
 const checkGroupNameUniqueUC = new CheckGroupNameUnique(groupRepo);
 const sendJoinRequestUC = new SendJoinRequest(groupRepo, groupMemberRepo, groupRequestRepo, studyGroupSubject);
 const getGroupRequestsUC = new GetGroupRequests(groupRequestRepo);

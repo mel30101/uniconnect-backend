@@ -33,7 +33,8 @@ class GroupController {
   });
 
   getGroupById = asyncHandler(async (req, res, next) => {
-    const group = await this.getGroupByIdUC.execute(req.params.id);
+    const { userId } = req.query;
+    const group = await this.getGroupByIdUC.execute(req.params.id, userId);
     if (!group) {
         throw new Error('GROUP_NOT_FOUND');
     }
