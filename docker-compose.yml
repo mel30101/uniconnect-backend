@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build: ./services/auth-service
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    env_file: ./services/auth-service/.env
+
+  user-service:
+    build: ./services/user-service
+    container_name: user-service
+    ports:
+      - "3002:3002"
+    env_file: ./services/user-service/.env
+
+  social-service:
+    build: ./services/social-service
+    container_name: social-service
+    ports:
+      - "3003:3003"
+    env_file: ./services/social-service/.env
+
+  chat-service:
+    build: ./services/chat-service
+    container_name: chat-service
+    ports:
+      - "3004:3004"
+    env_file: ./services/chat-service/.env
+
+  academic-service:
+    build: ./services/academic-service
+    container_name: academic-service
+    ports:
+      - "3005:3005"
+    env_file: ./services/academic-service/.env
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: notification-service
+    ports:
+      - "3006:3006"
+    env_file: ./services/notification-service/.env
