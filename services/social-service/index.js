@@ -53,7 +53,7 @@ studyGroupSubject.attach(persistenceObserver);
 studyGroupSubject.attach(wsObserver);
 studyGroupSubject.attach(pushObserver);
 
-const eventoObserver = new EventoUniversidadObserver(io, db, subscriptionRepo);
+const eventoObserver = new EventoUniversidadObserver(io, db, subscriptionRepo, categoryRepo);
 eventoUniversidadSubject.attach(eventoObserver);
 
 console.log('✅ Sistema de Notificaciones (Observer) inicializado y registrado.');
