@@ -166,6 +166,9 @@ app.get('/health', (req, res) => {
 app.use('/groups', createGroupRoutes(groupCtrl));
 app.use('/events', createEventRoutes(eventCtrl));
 
+const { globalErrorHandler } = require('./src/infrastructure/http/middlewares/errorMiddleware');
+app.use(globalErrorHandler);
+
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3003;
   server.listen(PORT, () => {

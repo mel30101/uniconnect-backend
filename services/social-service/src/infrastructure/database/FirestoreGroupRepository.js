@@ -59,6 +59,13 @@ class FirestoreGroupRepository {
   async updateCreatorId(groupId, newCreatorId) {
     await this.db.collection('groups').doc(groupId).update({ creatorId: newCreatorId });
   }
+
+  async countBySubjectId(subjectId) {
+    const snapshot = await this.db.collection('groups')
+      .where('subjectId', '==', subjectId)
+      .get();
+    return snapshot.size;
+  }
 }
 
 module.exports = FirestoreGroupRepository;
