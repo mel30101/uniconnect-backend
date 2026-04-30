@@ -13,8 +13,8 @@ jobs:
     strategy:
       matrix:
         service:
-          - services/chat-service
-          - services/notification-service
+          - services/auth-service
+          - services/social-service
 
     steps:
     - name: 1. Clonar el repositorio
@@ -30,7 +30,26 @@ jobs:
         cd ${{ matrix.service }}
         npm ci
 
-    - name: 4. Ejecutar pruebas unitarias
+    - name: 4. Instalar Java (requerido para el emulador de Firebase)
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: 5. Iniciar emulador de Firestore
+      run: |
+        npm install -g firebase-tools
+        # Inicia el emulador de Firestore de forma silenciosa y en segundo plano
+        firebase emulators:start --only firestore --project test-project &
+        # Espera a que el emulador esté listo
+        sleep 10
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }} # (Opcional, si requiere autenticación)
+
+    - name: 6. Ejecutar pruebas unitarias e integración con la variable de test
+      env:
+        NODE_ENV: test
+        FIRESTORE_EMULATOR_HOST: localhost:8080
       run: |
         cd ${{ matrix.service }}
         npx jest --forceExit --detectOpenHandles
