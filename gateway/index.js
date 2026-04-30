@@ -15,6 +15,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
+
 const onProxyRes = (proxyRes) => {
     delete proxyRes.headers['access-control-allow-origin'];
     delete proxyRes.headers['access-control-allow-methods'];
@@ -26,6 +27,7 @@ const onProxyRes = (proxyRes) => {
 app.use('/auth', createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
+    pathRewrite: { '^/auth': '' },
     onProxyRes
 }));
 
