@@ -16,7 +16,11 @@ exports.globalErrorHandler = (err, req, res, next) => {
     'REQUEST_ALREADY_EXISTS': 400,
     'CANNOT_REMOVE_SELF': 400,
     'NEW_ADMIN_NOT_FOUND': 400,
-    
+    'SUBJECT_GROUP_LIMIT_REACHED': 400,
+    'NO_PENDING_TRANSFER': 400,
+    'CANDIDATE_NOT_A_MEMBER': 400,
+    'INVALID_ACTION': 400,
+
     // 403 Forbidden
     'NOT_AUTHORIZED': 403,
 
@@ -30,7 +34,7 @@ exports.globalErrorHandler = (err, req, res, next) => {
 
   // Asignar el código de estado correspondiente o 500 por defecto
   const status = errorMap[err.message] || 500;
-  
+
   // Utilizar el LoggerSingleton para reportar sin tomar decisiones de flujo
   if (status === 500) {
     logger.critical(err.message || 'Error Interno del Servidor', err);

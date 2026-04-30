@@ -19,6 +19,12 @@ class CreateGroup {
       throw new Error('GROUP_NAME_ALREADY_EXISTS');
     }
 
+    // Validar límite de 3 grupos por asignatura
+    const existingCount = await this.groupRepo.countBySubjectId(subjectId);
+    if (existingCount >= 3) {
+      throw new Error('SUBJECT_GROUP_LIMIT_REACHED');
+    }
+
     // Crear el grupo
     const newGroup = await this.groupRepo.create({ name, subjectId, description, creatorId });
 

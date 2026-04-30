@@ -156,6 +156,9 @@ app.use(express.json());
 app.use('/groups', createGroupRoutes(groupCtrl));
 app.use('/events', createEventRoutes(eventCtrl));
 
+const { globalErrorHandler } = require('./src/infrastructure/http/middlewares/errorMiddleware');
+app.use(globalErrorHandler);
+
 const PORT = process.env.PORT || 3003;
 server.listen(PORT, () => {
   console.log(`👥 Social Service (Grupos y Eventos) listo en puerto ${PORT}`);
