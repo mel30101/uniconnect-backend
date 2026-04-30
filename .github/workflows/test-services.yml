@@ -2,9 +2,9 @@ name: Uniconnect CI - Pruebas y Microservicios
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "test/automatization" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "test/automatization" ]
 
 jobs:
   test:
