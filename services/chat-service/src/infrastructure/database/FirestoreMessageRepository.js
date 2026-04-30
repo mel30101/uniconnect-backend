@@ -23,13 +23,30 @@ class FirestoreMessageRepository {
       .doc(chatId)
       .collection('messages')
       .add({
-        senderId: messageData.senderId,
-        createdAt: new Date(),
-        type: messageData.type || 'text',
-        text: messageData.text || '',
-        ...(messageData.fileUrl && { fileUrl: messageData.fileUrl }),
-        ...(messageData.fileName && { fileName: messageData.fileName })
+        ...messageData,
+        createdAt: new Date()
       });
+  }
+
+  async getById(chatId, messageId) {
+    const doc = await this.db
+      .collection('chats')
+      .doc(chatId)
+      .collection('messages')
+      .doc(messageId)
+      .get();
+
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() };
+  }
+
+  async update(chatId, messageId, data) {
+    await this.db
+      .collection('chats')
+      .doc(chatId)
+      .collection('messages')
+      .doc(messageId)
+      .update(data);
   }
 }
 

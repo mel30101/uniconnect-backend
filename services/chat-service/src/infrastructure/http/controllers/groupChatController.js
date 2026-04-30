@@ -1,10 +1,14 @@
+const { asyncHandler } = require('../middlewares/errorMiddleware');
+
 class GroupChatController {
-  constructor({ sendGroupMessage }) {
+  constructor({ sendGroupMessage, addGroupReaction }) {
     this.sendGroupMessage = sendGroupMessage;
+    this.addGroupReactionUC = addGroupReaction;
 
     // Bind this para asegurar el contexto de ejecución
     this.sendMessage = this.sendMessage.bind(this);
     this.sendFileMessage = this.sendFileMessage.bind(this);
+    this.addGroupReaction = this.addGroupReaction.bind(this);
   }
 
   async sendMessage(req, res) {
@@ -27,7 +31,6 @@ class GroupChatController {
   async sendFileMessage(req, res) {
     try {
       const { groupId } = req.params;
-      // IMPORTANTE: En formdata, los campos llegan en req.body
       const { senderId, text } = req.body;
       const file = req.file;
 
@@ -40,6 +43,23 @@ class GroupChatController {
     } catch (error) {
       console.error('Error sending group file message:', error);
       res.status(500).json({ error: 'Error al enviar archivo en grupo' });
+    }
+  }
+
+  async addGroupReaction(req, res) {
+    try {
+      const { groupId, messageId } = req.params;
+      const { emoji, userId } = req.body;
+
+      if (!groupId || !messageId || !emoji || !userId) {
+        return res.status(400).json({ error: 'Faltan parámetros (groupId, messageId, emoji, userId)' });
+      }
+
+      const result = await this.addGroupReactionUC.execute(groupId, messageId, emoji, userId);
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error adding group reaction:', error);
+      res.status(500).json({ error: 'Error al reaccionar al mensaje' });
     }
   }
 }

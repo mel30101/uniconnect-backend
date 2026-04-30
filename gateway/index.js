@@ -10,9 +10,10 @@ app.use(cors({
         process.env.DASHBOARD_URL, // http://localhost:8081
         "https://corrine-hirudinoid-ayleen.ngrok-free.dev" // El ngrok actual de la app móvil
     ],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
-
 
 const onProxyRes = (proxyRes) => {
     delete proxyRes.headers['access-control-allow-origin'];
@@ -61,6 +62,11 @@ app.use('/api/chat', createProxyMiddleware({
         onProxyRes(proxyRes);
     },
     onProxyReq: (proxyReq, req, res) => {
+        // No re-serializar el body si es multipart/form-data (archivos)
+        const contentType = req.headers['content-type'] || '';
+        if (contentType.includes('multipart/form-data')) {
+            return; // Dejar que el stream pase sin modificar
+        }
         if (req.body) {
             const bodyData = JSON.stringify(req.body);
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
@@ -77,6 +83,11 @@ app.use('/api/group-chats', createProxyMiddleware({
         onProxyRes(proxyRes);
     },
     onProxyReq: (proxyReq, req, res) => {
+        // No re-serializar el body si es multipart/form-data (archivos)
+        const contentType = req.headers['content-type'] || '';
+        if (contentType.includes('multipart/form-data')) {
+            return; // Dejar que el stream pase sin modificar
+        }
         if (req.body) {
             const bodyData = JSON.stringify(req.body);
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));

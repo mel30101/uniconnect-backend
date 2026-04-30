@@ -3,11 +3,18 @@ const express = require('express');
 function createEventRoutes(controller) {
   const router = express.Router();
 
+  // Consulta y creación de eventos
   router.get('/', controller.getEvents);
+  router.post('/', controller.createEvent);
   router.get('/categories', controller.getCategories);
-  router.post('/categories/subscribe', controller.subscribe);
-  router.post('/categories/unsubscribe', controller.unsubscribe);
-  router.get('/subscriptions/:userId', controller.getSubscribedCategories);
+
+  // Gestión de suscripciones a categorías
+  // POST   /eventos/suscribir        → suscribirse a una categoría
+  // DELETE /eventos/suscribir        → desuscribirse de una categoría
+  // GET    /eventos/suscripciones/:userId → obtener las categorías suscritas
+  router.post('/suscribir', controller.subscribe);
+  router.delete('/suscribir', controller.unsubscribe);
+  router.get('/suscripciones/:userId', controller.getSubscribedCategories);
 
   return router;
 }

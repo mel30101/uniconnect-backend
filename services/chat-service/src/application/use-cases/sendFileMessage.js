@@ -4,7 +4,7 @@ class SendFileMessage {
     this.sendMessageUseCase = sendMessageUseCase;
   }
 
-  async execute(chatId, senderId, file) {
+  async execute(chatId, senderId, file, text) {
     if (!file) {
       throw new Error('FILE_NOT_UPLOADED');
     }
@@ -17,7 +17,7 @@ class SendFileMessage {
       type: 'file',
       fileUrl: uploadedFile.fileUrl,
       fileName: uploadedFile.fileName,
-      text: `Envió un archivo: ${uploadedFile.fileName}`
+      text: text || `Envió un archivo: ${uploadedFile.fileName}`
     });
 
     return {

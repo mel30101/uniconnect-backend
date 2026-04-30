@@ -1,13 +1,11 @@
 const GroupMessage = require('../../domain/GroupMessage');
-const MentionDecorator = require('../../domain/decorators/MentionDecorator');
-const FileDecorator = require('../../domain/decorators/FileDecorator');
+const MensajeConArchivo = require('../../domain/decorators/MensajeConArchivo');
+const MensajeConMencion = require('../../domain/decorators/MensajeConMencion');
 
 class SendGroupMessage {
   constructor(groupMessageRepo, groupMemberRepo, cloudinaryService = null) {
     this.groupMessageRepo = groupMessageRepo;
-    // Instanciamos los decoradores
-    this.mentionDecorator = new MentionDecorator(groupMemberRepo);
-    this.fileDecorator = new FileDecorator();
+    this.groupMemberRepo = groupMemberRepo;
     this.cloudinaryService = cloudinaryService;
   }
 
@@ -16,6 +14,8 @@ class SendGroupMessage {
     let fileUrl = messageData.fileUrl || null;
     let fileName = messageData.fileName || null;
     let type = messageData.type || 'text';
+    let mimeType = null;
+    let tamano = 0;
 
     if (file && this.cloudinaryService) {
       try {
@@ -23,6 +23,8 @@ class SendGroupMessage {
         fileUrl = uploadResult.fileUrl || uploadResult.secure_url;
         fileName = file.originalname;
         type = 'file';
+        mimeType = file.mimetype;
+        tamano = file.size;
       } catch (error) {
         console.error('Error uploading file to Cloudinary:', error);
         throw new Error('No se pudo subir el archivo para el chat grupal');
@@ -38,17 +40,55 @@ class SendGroupMessage {
       fileName
     });
 
-    // 3. Aplicar Decoradores (Pipeline)
-    message = await this.mentionDecorator.decorate(message, groupId);
-    message = await this.fileDecorator.decorate(message);
+    // 3. Aplicar Decoradores (Modularmente)
+    
+    // 3a. Decorador de Archivo (si aplica)
+    if (type === 'file' && fileUrl) {
+      message = new MensajeConArchivo(message, {
+        url: fileUrl,
+        mimeType: mimeType || 'application/octet-stream',
+        tamano: tamano || 0,
+        fileName: fileName
+      });
+    }
 
-    // 4. Guardar en Base de Datos (en grupos/{groupId}/messages)
+    // 3b. Decorador de Mención (Detección y Aplicación)
+    const mentions = await this._detectMentions(message.getContenido(), groupId);
+    if (mentions.length > 0) {
+      message = new MensajeConMencion(message, mentions);
+    }
+
+    // 4. Guardar en Base de Datos
     const messageId = await this.groupMessageRepo.create(groupId, message.toJSON());
     
     return {
       messageId,
       ...message.toJSON()
     };
+  }
+
+  async _detectMentions(text, groupId) {
+    if (!text) return [];
+    const mentionRegex = /@([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑa-záéíóúñ]+)*)/g;
+    const matches = [...text.matchAll(mentionRegex)];
+    
+    if (matches.length === 0) return [];
+
+    const allMembers = await this.groupMemberRepo.getGroupMembersWithNames(groupId);
+    const mentionedUserIds = [];
+
+    for (const match of matches) {
+      const potentialName = match[1].toLowerCase().trim();
+      const foundMember = allMembers.find(member => 
+        member.name && member.name.toLowerCase().includes(potentialName)
+      );
+
+      if (foundMember && !mentionedUserIds.includes(foundMember.id)) {
+        mentionedUserIds.push(foundMember.id);
+      }
+    }
+
+    return mentionedUserIds;
   }
 }
 

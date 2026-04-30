@@ -6,6 +6,7 @@ class ChatController {
     this.sendMessageUC = useCases.sendMessage;
     this.sendFileMessageUC = useCases.sendFileMessage;
     this.getMessagesUC = useCases.getMessages;
+    this.addReactionUC = useCases.addReaction;
   }
 
   createChat = asyncHandler(async (req, res) => {
@@ -31,12 +32,12 @@ class ChatController {
     // console.log("Cuerpo recibido:", req.body);
     // console.log("Archivo recibido:", req.file);
     const { chatId } = req.params;
-    const { senderId } = req.body;
+    const { senderId, text } = req.body;
     const file = req.file;
     if (!file) {
       return res.status(400).json({ error: "Archivo no subido" });
     }
-    const result = await this.sendFileMessageUC.execute(chatId, senderId, file);
+    const result = await this.sendFileMessageUC.execute(chatId, senderId, file, text);
     res.json(result);
   });
 
@@ -44,6 +45,18 @@ class ChatController {
     const { chatId } = req.params;
     const messages = await this.getMessagesUC.execute(chatId);
     res.json({ messages });
+  });
+
+  addReaction = asyncHandler(async (req, res) => {
+    const { chatId, messageId } = req.params;
+    const { emoji, userId } = req.body;
+
+    if (!emoji || !userId) {
+      return res.status(400).json({ error: "Datos de reacción incompletos" });
+    }
+
+    const result = await this.addReactionUC.execute(chatId, messageId, emoji, userId);
+    res.json(result);
   });
 }
 

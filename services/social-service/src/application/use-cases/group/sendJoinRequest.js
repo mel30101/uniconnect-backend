@@ -28,6 +28,10 @@ class SendJoinRequest {
       if (existingRequest.status === 'pending') {
         throw new Error('REQUEST_ALREADY_EXISTS');
       }
+      // Si ya existe (p.ej. fue rechazada), la "limpiamos" para crearla de nuevo
+      // o simplemente dejamos que el .create (que hace un .set) la sobreescriba.
+      // Pero borramos para asegurar que el timestamp de creación sea nuevo si se prefiere,
+      // aunque FirestoreGroupRequestRepository.create ya usa serverTimestamp().
       await this.groupRequestRepo.deleteByUserAndGroup(groupId, userId);
     }
 

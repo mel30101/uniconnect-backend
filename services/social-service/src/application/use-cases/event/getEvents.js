@@ -5,23 +5,18 @@ class GetEvents {
   }
 
   async execute({ categoryId } = {}) {
-    let events = await this.eventRepo.findAll();
-    const categories = await this.categoryRepo.findAll();
+    // 1. Obtener eventos (filtrados por DB si se provee categoryId) y categorías
+    const [events, categories] = await Promise.all([
+      this.eventRepo.findAll(categoryId),
+      this.categoryRepo.findAll()
+    ]);
     
     const categoryMap = {};
     categories.forEach(cat => {
       categoryMap[cat.id] = cat.name;
     });
 
-    // 1. Filtrar por categoría (usando el ID original antes de mapear)
-    if (categoryId) {
-      events = events.filter(event => event.type === categoryId);
-    }
-
-    // 2. Mapear 'type' al Nombre de la categoría (sin añadir nuevos campos)
-    // El usuario pide que el frontend vea el nombre basándose en el type que tiene el id.
-    // Al sobreescribir el campo 'type' con el nombre antes de enviar el JSON, 
-    // la tarjeta del frontend mostrará directamente el nombre (ej: "Cultural").
+    // 2. Mapear 'type' al Nombre de la categoría
     const mappedEvents = events.map(event => ({
       ...event,
       type: categoryMap[event.type] || 'General'

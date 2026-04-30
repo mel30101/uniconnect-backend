@@ -1,12 +1,13 @@
 class GetGroupById {
-  constructor(groupRepo, groupMemberRepo, catalogRepo, userRepo) {
+  constructor(groupRepo, groupMemberRepo, groupRequestRepo, catalogRepo, userRepo) {
     this.groupRepo = groupRepo;
     this.groupMemberRepo = groupMemberRepo;
+    this.groupRequestRepo = groupRequestRepo;
     this.catalogRepo = catalogRepo;
     this.userRepo = userRepo;
   }
 
-  async execute(groupId) {
+  async execute(groupId, userId = null) {
     const group = await this.groupRepo.findById(groupId);
     if (!group) return null;
 
@@ -25,10 +26,26 @@ class GetGroupById {
       role: members.find(m => m.userId === u.id)?.role || 'student'
     }));
 
+    let userStatus = 'none';
+    if (userId) {
+      if (group.creatorId === userId) {
+        userStatus = 'admin';
+      } else if (memberIds.includes(userId)) {
+        userStatus = 'member';
+      } else {
+        // Check for pending/rejected requests
+        const request = await this.groupRequestRepo.findByGroupAndUser(groupId, userId);
+        if (request) {
+          userStatus = request.status || 'pending';
+        }
+      }
+    }
+
     return {
       ...group,
       subjectName,
-      members: memberDetails
+      members: memberDetails,
+      userStatus
     };
   }
 }

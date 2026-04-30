@@ -75,6 +75,16 @@ class NotificationObserver {
     });
   }
 
+  async onAdminTransferRejected(userId, rejectorName, groupName, groupId) {
+    return this.sendNotificationUseCase.execute({
+      userId,
+      title: 'Transferencia de Administración Rechazada',
+      body: `${rejectorName} ha rechazado la solicitud para ser administrador del grupo "${groupName}"`,
+      metadata: { groupId, type: 'admin_transfer_rejected' },
+      type: 'group'
+    });
+  }
+
   async onNewEvent(userId, categoryName, eventTitle, eventId) {
     return this.sendNotificationUseCase.execute({
       userId,
