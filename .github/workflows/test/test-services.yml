@@ -1,0 +1,40 @@
+name: Uniconnect CI - Pruebas y Microservicios
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - services/chat-service
+          - services/notification-service
+
+    steps:
+    - name: 1. Clonar el repositorio
+      uses: actions/checkout@v4
+
+    - name: 2. Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: |
+          services/chat-service/package-lock.json
+          services/notification-service/package-lock.json
+
+    - name: 3. Instalar dependencias para el servicio
+      run: |
+        cd ${{ matrix.service }}
+        npm ci
+
+    - name: 4. Ejecutar pruebas unitarias
+      run: |
+        cd ${{ matrix.service }}
+        npx jest --forceExit --detectOpenHandles
