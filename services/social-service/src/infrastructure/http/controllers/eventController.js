@@ -59,7 +59,7 @@ class EventController {
    * 204 → eliminado (sin cuerpo)
    */
   unsubscribe = asyncHandler(async (req, res) => {
-    const { userId, categoryId } = req.body;
+    const { userId, categoryId } = req.query;
     if (!userId || !categoryId) {
       return res.status(400).json({ error: 'Faltan parámetros (userId, categoryId)' });
     }
