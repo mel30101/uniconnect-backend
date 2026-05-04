@@ -10,7 +10,8 @@
     "test:watch": "cross-env NODE_ENV=test jest --watch",
     "test:coverage": "cross-env NODE_ENV=test jest --coverage --forceExit",
     "test:integration": "cross-env NODE_ENV=test jest tests/integration --forceExit",
-    "test:verbose": "cross-env NODE_ENV=test jest --verbose --forceExit"
+    "test:verbose": "cross-env NODE_ENV=test jest --verbose --forceExit",
+    "test:unit": "cross-env NODE_ENV=test jest tests/unit --runInBand --forceExit"
   },
   "keywords": [],
   "author": "",
