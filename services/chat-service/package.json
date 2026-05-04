@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test:unit": "cross-env NODE_ENV=test jest tests/unit --runInBand --forceExit"
   },
   "keywords": [],
   "author": "",
