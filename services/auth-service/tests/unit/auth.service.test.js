@@ -27,7 +27,7 @@ describe('Auth Service - Unit Tests', () => {
       const invalidToken = TokenBuilder.createInvalidToken();
       const isValid = JWTValidator.isValidFormat(invalidToken);
       
-      expect(isValid).toBe(false); // Espera que sea falso porque tiene 4 partes
+      expect(isValid).toBe(false); 
     });
 
     it('debería extraer el UID del payload correctamente', () => {
