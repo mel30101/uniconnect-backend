@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "test:unit": "cross-env NODE_ENV=test jest tests/unit --runInBand --forceExit"
+    "test:unit": "cross-env NODE_ENV=test jest tests/unit --runInBand --forceExit",
+    "test:integration": "jest tests/integration/ChatObserver.test.js"
   },
   "keywords": [],
   "author": "",
