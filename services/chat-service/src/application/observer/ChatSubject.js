@@ -21,9 +21,14 @@ class ChatSubject extends ISubject {
   }
 
   notify(event, data) {
-    for (const observer of this.observers) {
-      observer.update(event, data);
-    }
+    this.observers.forEach(observer => {
+      try {
+        observer.update(event, data);
+      } catch (error) {
+        // Capturamos el error para aislarlo, permitiendo que los otros observers sigan ejecutándose
+        console.error(`Error en el observer: ${error.message}`);
+      }
+    });
   }
 }
 
