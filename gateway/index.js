@@ -98,6 +98,12 @@ app.use('/api/group-chats', createProxyMiddleware({
     }
 }));
 
+app.use('/socket.io', createProxyMiddleware({
+    target: process.env.CHAT_SERVICE_URL,
+    changeOrigin: true,
+    ws: true
+}));
+
 // --- ACADEMIC SERVICE ---
 app.use('/api/careers', createProxyMiddleware({
     target: `${process.env.ACADEMIC_SERVICE_URL}/careers`,

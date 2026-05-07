@@ -18,11 +18,14 @@ class TokenBuilder {
       isValid = true
     } = options;
 
+    const header = { alg: 'RS256', typ: 'JWT' };
+    
     const payload = {
       iss: 'https://accounts.google.com',
       azp: 'mock-client-id',
       aud: 'mock-client-id',
       sub: uid,
+      uid: uid, // Añadido para que extractUid funcione correctamente
       email: email,
       email_verified: true,
       name: name,
@@ -34,7 +37,20 @@ class TokenBuilder {
       exp: Math.floor(Date.now() / 1000) + 3600
     };
 
-    return Buffer.from(JSON.stringify(payload)).toString('base64');
+    // Función para codificar como Base64 URL (estándar JWT)
+    const base64UrlEncode = (obj) => {
+      return Buffer.from(JSON.stringify(obj))
+        .toString('base64')
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+    };
+
+    const encodedHeader = base64UrlEncode(header);
+    const encodedPayload = base64UrlEncode(payload);
+    const signature = 'mockSignature'; // Firma simulada
+
+    return `${encodedHeader}.${encodedPayload}.${signature}`;
   }
 
   /**

@@ -15,7 +15,7 @@ module.exports = async () => {
 
   process.env.NODE_ENV = 'test';
   process.env.FIREBASE_TEST_PROJECT_ID = 'test-project';
-  process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
+  process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8085';
 
   console.log('════════════════════════════════════════════════════════');
   console.log('AMBIENTE DE TESTING CONFIGURADO');

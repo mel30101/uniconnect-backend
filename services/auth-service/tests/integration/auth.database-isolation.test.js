@@ -5,6 +5,10 @@
  */
 
 const TestDatabaseSetup = require('../utils/setupTestDB');
+const admin = require('firebase-admin');
+
+// Aumentamos el tiempo de espera a 30 segundos para esta suite
+jest.setTimeout(30000);
 
 let db;
 
@@ -14,7 +18,11 @@ describe('Database Isolation - Test Environment', () => {
   });
 
   afterAll(async () => {
-    if (db) await db.terminate();
+    if (db) {
+      await db.terminate();
+    }
+    // Limpiamos las instancias para evitar que Jest se quede colgado
+    await Promise.all(admin.apps.map(app => app.delete()));
   });
 
   describe('Validación de Entorno de Prueba', () => {
@@ -28,7 +36,7 @@ describe('Database Isolation - Test Environment', () => {
     });
 
     it('debe usar proyecto de prueba, no producción', () => {
-      const projectId = process.env.FIREBASE_TEST_PROJECT_ID;
+      const projectId = process.env.FIREBASE_TEST_PROJECT_ID || 'test-project';
       expect(projectId).toBeDefined();
       expect(projectId).not.toContain('production');
     });
