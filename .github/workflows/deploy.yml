@@ -2,7 +2,7 @@ name: Uniconnect CD - Despliegue en Fly.io
 
 on:
   push:
-    branches: [ "main", "feature/auth-service-unit-tests" ]
+    branches: [ "main", "feature/auth-service-unit-tests", "actualizar-pruebas ]
 
 jobs:
   test:
@@ -44,11 +44,29 @@ jobs:
 
     - name: 1.6. Ejecutar pruebas unitarias e integración con la variable de test
       env:
+        # Variables básicas
         NODE_ENV: test
+        PORT: 3003
+        BASE_URL: http://localhost:3001
+        
+        # Configuración de Emuladores (Asegura que coincidan con el puerto del paso 1.5)
         FIRESTORE_EMULATOR_HOST: localhost:8080
+        FIREBASE_AUTH_EMULATOR_HOST: localhost:9099
+        
+        # Configuración de Firebase / Google Auth (Los "mock-id" que faltaban)
+        FIREBASE_PROJECT_ID: test-project
+        GCLOUD_PROJECT: test-project
+        GOOGLE_CLIENT_ID: mock-id
+        GOOGLE_CLIENT_SECRET: mock-secret
+        JWT_SECRET: qa_secret_key_123
+        
+        # Clave privada ficticia para evitar errores de inicialización de SDK
+        FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQ..."
+        FIREBASE_CLIENT_EMAIL: test@example.com
       run: |
         cd ${{ matrix.service }}
-        npx jest --forceExit --detectOpenHandles
+        # Añadimos --testTimeout para dar más tiempo a los servidores de GitHub
+        npx jest --forceExit --detectOpenHandles --testTimeout=30000
 
   deploy:
     name: 2. Construir y Desplegar en Fly.io
