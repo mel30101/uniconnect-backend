@@ -1,7 +1,7 @@
 const express = require('express');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
-const { verifyJwtCookie } = require('../middlewares/verifyJwtCookie');
+const { authMiddleware } = require('../middlewares/authMiddleware');
 
 function createAuthRoutes() {
   const router = express.Router();
@@ -28,13 +28,15 @@ function createAuthRoutes() {
         return res.redirect(`${state}?error=domain_not_allowed`);
       }
 
-      if (state === 'web') {
-        const token = jwt.sign(
-          { uid: user.uid, name: user.name, email: user.email },
-          process.env.JWT_SECRET,
-          { expiresIn: process.env.JWT_EXPIRES_IN }
-        );
+      // Generamos el JWT firmado tanto para Web como para Móvil.
+      // La validación estricta de @ucaldas.edu.co ya fue aplicada por el strategy de Passport.
+      const token = jwt.sign(
+        { uid: user.uid, name: user.name, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+      );
 
+      if (state === 'web') {
         res.cookie('uniconnect_token', token, {
           httpOnly: true,
           sameSite: 'none',
@@ -45,11 +47,13 @@ function createAuthRoutes() {
         return res.redirect(`${process.env.DASHBOARD_URL}/?name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&uid=${encodeURIComponent(user.uid)}`);
       }
 
-      res.redirect(`${state}?name=${encodeURIComponent(user.name)}&email=${user.email}&uid=${user.uid}`);
+      // Origen Móvil (state es la url de Expo ej: exp://...)
+      // NOTA: Este token será capturado por el frontend móvil para ser almacenado de manera segura en SecureStore (US-M01)
+      res.redirect(`${state}?token=${token}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&uid=${encodeURIComponent(user.uid)}`);
     })(req, res, next);
   });
 
-  router.get('/me', verifyJwtCookie, (req, res) => {
+  router.get('/me', authMiddleware, (req, res) => {
     res.json({
       uid: req.user.uid,
       name: req.user.name,
