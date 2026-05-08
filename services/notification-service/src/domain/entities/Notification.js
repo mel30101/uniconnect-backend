@@ -1,5 +1,8 @@
-class Notification {
+const INotificacion = require('./INotificacion');
+
+class Notification extends INotificacion {
   constructor({ id, userId, title, body, metadata = {}, type, status = 'unread', createdAt = new Date() }) {
+    super();
     this.id = id;
     this.userId = userId;
     this.title = title;
@@ -18,7 +21,7 @@ class Notification {
     });
   }
 
-  toFirestore() {
+  getDTO() {
     return {
       userId: this.userId,
       title: this.title,
@@ -28,6 +31,10 @@ class Notification {
       status: this.status,
       createdAt: this.createdAt
     };
+  }
+
+  toFirestore() {
+    return this.getDTO();
   }
 }
 
