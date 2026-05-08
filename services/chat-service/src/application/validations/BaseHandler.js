@@ -1,5 +1,6 @@
 /**
  * Interfaz/Clase Base para el Patrón Chain of Responsibility.
+ * Esta clase define el contrato de la interfaz IValidadorMensajeHandler solicitada en los requerimientos.
  */
 class BaseHandler {
   constructor() {

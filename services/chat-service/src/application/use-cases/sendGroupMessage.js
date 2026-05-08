@@ -1,16 +1,39 @@
 const GroupMessage = require('../../domain/GroupMessage');
 const MensajeConArchivo = require('../../domain/decorators/MensajeConArchivo');
 const MensajeConMencion = require('../../domain/decorators/MensajeConMencion');
+const ValidationChainFactory = require('../factories/ValidationChainFactory');
+const chatSubject = require('../observer/ChatSubject');
+const { ChatEvents } = require('../../domain/observer/ISubject');
 
 class SendGroupMessage {
   constructor(groupMessageRepo, groupMemberRepo, cloudinaryService = null) {
     this.groupMessageRepo = groupMessageRepo;
     this.groupMemberRepo = groupMemberRepo;
     this.cloudinaryService = cloudinaryService;
+    
+    // Inicializamos la cadena de validación
+    this.validationChain = ValidationChainFactory.createGroupMessageChain(this.groupMemberRepo);
   }
 
   async execute(groupId, senderId, messageData, file = null) {
-    // 1. Si hay archivo, subirlo a Cloudinary primero
+    // 1. Ejecutar Cadena de Responsabilidad (Validación y Detección de Menciones)
+    // Criterio 5: Validar antes de gastar memoria o recursos externos
+    const validationRequest = { 
+      groupId, 
+      senderId, 
+      text: messageData.text, 
+      file 
+    };
+    
+    const validationResult = await this.validationChain.manejar(validationRequest);
+    
+    if (!validationResult.esValido) {
+      const error = new Error(validationResult.error);
+      error.codigo = validationResult.codigo;
+      throw error;
+    }
+
+    // 2. Si hay archivo y pasó la validación, subirlo a Cloudinary
     let fileUrl = messageData.fileUrl || null;
     let fileName = messageData.fileName || null;
     let type = messageData.type || 'text';
@@ -31,7 +54,7 @@ class SendGroupMessage {
       }
     }
 
-    // 2. Crear instancia base del mensaje de grupo
+    // 3. Crear instancia base del mensaje de grupo
     let message = new GroupMessage({
       senderId,
       type,
@@ -40,9 +63,9 @@ class SendGroupMessage {
       fileName
     });
 
-    // 3. Aplicar Decoradores (Modularmente)
+    // 4. Aplicar Decoradores (Modularmente)
     
-    // 3a. Decorador de Archivo (si aplica)
+    // 4a. Decorador de Archivo (si aplica)
     if (type === 'file' && fileUrl) {
       message = new MensajeConArchivo(message, {
         url: fileUrl,
@@ -52,43 +75,37 @@ class SendGroupMessage {
       });
     }
 
-    // 3b. Decorador de Mención (Detección y Aplicación)
-    const mentions = await this._detectMentions(message.getContenido(), groupId);
+    // 4b. Decorador de Mención (Utilizando datos inyectados por la cadena)
+    // Criterio 4: Evitar re-procesamiento de menciones
+    const mentions = validationRequest.mentions || [];
     if (mentions.length > 0) {
       message = new MensajeConMencion(message, mentions);
     }
 
-    // 4. Guardar en Base de Datos
-    const messageId = await this.groupMessageRepo.create(groupId, message.toJSON());
+    // 5. Guardar en Base de Datos
+    const messageJson = message.toJSON();
+    const messageId = await this.groupMessageRepo.create(groupId, messageJson);
     
-    return {
+    const result = {
       messageId,
-      ...message.toJSON()
+      ...messageJson
     };
-  }
 
-  async _detectMentions(text, groupId) {
-    if (!text) return [];
-    const mentionRegex = /@([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑa-záéíóúñ]+)*)/g;
-    const matches = [...text.matchAll(mentionRegex)];
-    
-    if (matches.length === 0) return [];
-
-    const allMembers = await this.groupMemberRepo.getGroupMembersWithNames(groupId);
-    const mentionedUserIds = [];
-
-    for (const match of matches) {
-      const potentialName = match[1].toLowerCase().trim();
-      const foundMember = allMembers.find(member => 
-        member.name && member.name.toLowerCase().includes(potentialName)
-      );
-
-      if (foundMember && !mentionedUserIds.includes(foundMember.id)) {
-        mentionedUserIds.push(foundMember.id);
+    // 6. Notificar a los Observadores (ChatSubject)
+    // Criterio: Cerrar el flujo notificando a los interesados tras la persistencia
+    chatSubject.notify(ChatEvents.NUEVO_MENSAJE, {
+      groupId,
+      message: {
+        message_id: messageId,
+        timestamp: new Date().toISOString(),
+        sender: { id: senderId },
+        content: result.content,
+        renderedContent: result.renderedContent,
+        metadata: result
       }
-    }
+    });
 
-    return mentionedUserIds;
+    return result;
   }
 }
 
