@@ -3,6 +3,7 @@ const INotificacionStrategy = require('../../domain/strategies/INotificacionStra
 class EmailInstitucionalStrategy extends INotificacionStrategy {
   constructor() {
     super();
+    this.canal = 'email';
   }
 
   async enviar(notification) {

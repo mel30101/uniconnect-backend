@@ -4,6 +4,7 @@ class InAppStrategy extends INotificacionStrategy {
   constructor(notificationRepo) {
     super();
     this.notificationRepo = notificationRepo;
+    this.canal = 'in_app';
   }
 
   async enviar(notification) {

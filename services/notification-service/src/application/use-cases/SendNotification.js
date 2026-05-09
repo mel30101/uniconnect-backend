@@ -36,16 +36,37 @@ class SendNotification {
 
       const finalDTO = notificacion.getDTO();
 
-      // 3. Execute all injected strategies (Criterio 1, 2 & 3)
-      // Note: Filtering logic based on preferences will be polished in Task 2
+      // 3. Execute strategies with Filtering and Resilience (Criterio 4 & 5)
       const executionResults = [];
       
       for (const strategy of this.strategies) {
-        const result = await strategy.enviar(finalDTO);
-        executionResults.push(result);
+        // Criterio 4: Filtering based on preferences
+        // We check if the channel is enabled globally for the user.
+        // If event-specific overrides are added in the future, they would be checked here.
+        const isEnabled = preferences.enabledChannels[strategy.canal] ?? true;
+        
+        if (!isEnabled) {
+          console.log(`[Notification] Channel ${strategy.canal} is disabled for user ${notificationData.userId}. Skipping.`);
+          continue;
+        }
+
+        // Criterio 5: Resilience (Fault Isolation)
+        try {
+          const result = await strategy.enviar(finalDTO);
+          executionResults.push(result);
+        } catch (strategyError) {
+          console.error(`[Notification] Critical failure in ${strategy.canal} strategy:`, strategyError.message);
+          
+          // We register the failure but continue with other strategies
+          executionResults.push({
+            canal: strategy.canal,
+            enviado: false,
+            error: 'ISOLATED_STRATEGY_FAILURE'
+          });
+        }
       }
 
-      console.log(`[Notification] All strategies executed for ${notificationData.userId}`);
+      console.log(`[Notification] Processing complete for ${notificationData.userId}. Results: ${executionResults.length} channels processed.`);
       
       return { 
         success: true, 

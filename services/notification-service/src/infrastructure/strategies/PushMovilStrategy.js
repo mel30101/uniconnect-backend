@@ -4,6 +4,7 @@ class PushMovilStrategy extends INotificacionStrategy {
   constructor(tokenRepo) {
     super();
     this.tokenRepo = tokenRepo;
+    this.canal = 'push';
   }
 
   async enviar(notification) {
