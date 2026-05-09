@@ -102,6 +102,9 @@ const io = new Server(server, {
 const groupChatObserver = new GroupChatObserver(io);
 chatSubject.attach(groupChatObserver);
 
+// --- PRESENCE TRACKER ---
+const activeUsers = new Map();
+
 io.on('connection', async (socket) => {
   const { userId, study_group_id } = socket.handshake.query;
 
@@ -114,6 +117,18 @@ io.on('connection', async (socket) => {
 
   // Guardar userId en el socket
   socket.userId = userId;
+
+  // 1. PRESENCIA Y SALA PERSONAL (US-W06 C5)
+  activeUsers.set(userId, socket.id);
+  socket.join(`user_${userId}`);
+  io.emit('USER_STATUS_CHANGED', { userId, status: 'online' });
+  console.log(`[Socket] Presencia: Usuario ${userId} online`);
+
+  // Evento para consultar el estado de un usuario específico
+  socket.on('check_user_status', ({ userId: targetUserId }, callback) => {
+    const isOnline = activeUsers.has(targetUserId);
+    if (callback) callback({ userId: targetUserId, status: isOnline ? 'online' : 'offline' });
+  });
 
   // Si viene con un grupo en el handshake, lo unimos
   if (study_group_id) {
@@ -149,6 +164,61 @@ io.on('connection', async (socket) => {
   socket.on('leave_group', ({ groupId }) => {
     socket.leave(groupId);
     console.log(`[Socket] Usuario ${socket.userId} salió de la sala: ${groupId}`);
+  });
+
+  // --- MENCIONES (Móvil C4) ---
+  socket.on('get_mention_suggestions', async ({ groupId }, callback) => {
+    try {
+      const members = await groupMemberRepo.getGroupMembersWithNames(groupId);
+      // members ya contiene id, username, photoUrl, etc.
+      if (callback) callback({ success: true, data: members });
+    } catch (error) {
+      console.error("[Socket] Error obteniendo miembros para menciones:", error);
+      if (callback) callback({ success: false, error: 'Error obteniendo miembros' });
+    }
+  });
+
+  // --- CHAT PRIVADO (US-W06 C2) ---
+  socket.on('join_private_chat', ({ chatId }) => {
+    const roomName = `room_private_${chatId}`;
+    socket.join(roomName);
+    console.log(`[Socket] Usuario ${socket.userId} unido al chat privado: ${roomName}`);
+  });
+
+  socket.on('send_private_message', async (rawPayload, callback) => {
+    let payload = rawPayload;
+    if (typeof rawPayload === 'string') {
+      try { payload = JSON.parse(rawPayload); } catch (e) {}
+    }
+
+    const { chatId, senderId, text, file } = payload || {};
+    
+    if (!chatId || !senderId || (!text && !file)) {
+      if (callback) callback({ success: false, error: 'Campos requeridos faltantes para chat privado' });
+      return;
+    }
+
+    try {
+      const messageData = file ? { type: 'file', fileUrl: file.url, fileName: file.name, text } : { type: 'text', text };
+      const result = await sendMessageUC.execute(chatId, senderId, messageData);
+      
+      const responseData = {
+        message_id: result.id || `temp_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        sender: { id: senderId },
+        content: result.text,
+        renderedContent: result.renderedContent,
+        metadata: result
+      };
+
+      // Emitir a la sala privada
+      socketService.emitToChat(`room_private_${chatId}`, 'receive_private_message', responseData);
+
+      if (callback) callback({ success: true, data: responseData });
+    } catch (error) {
+      console.error('[Socket Debug] ❌ ERROR en flujo send_private_message:', error);
+      if (callback) callback({ success: false, error: error.message });
+    }
   });
 
   // --- ESCUCHAR MENSAJES ---
@@ -204,6 +274,12 @@ io.on('connection', async (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`[Socket] Usuario ${userId} desconectado`);
+    // Limpiar presencia y emitir estado offline
+    if (activeUsers.get(userId) === socket.id) {
+      activeUsers.delete(userId);
+      io.emit('USER_STATUS_CHANGED', { userId, status: 'offline' });
+      console.log(`[Socket] Presencia: Usuario ${userId} offline`);
+    }
   });
 });
 

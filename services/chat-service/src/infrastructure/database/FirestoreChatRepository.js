@@ -18,10 +18,10 @@ class FirestoreChatRepository{
   }
 
   async updateLastMessage(chatId, text) {
-    await this.db.collection('chats').doc(chatId).update({
+    await this.db.collection('chats').doc(chatId).set({
       lastMessage: text,
       updatedAt: new Date()
-    });
+    }, { merge: true });
   }
 }
 
