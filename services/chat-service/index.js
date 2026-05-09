@@ -217,11 +217,47 @@ io.on('connection', async (socket) => {
       if (callback) callback({ success: true, data: responseData });
     } catch (error) {
       console.error('[Socket Debug] ❌ ERROR en flujo send_private_message:', error);
-      if (callback) callback({ success: false, error: error.message });
+      
+      // Emitir evento de error explícito al remitente para que la UI informe del problema de validación
+      socket.emit('error_message', {
+        code: error.codigo || 'INTERNAL_ERROR',
+        message: error.message
+      });
+
+      if (callback) callback({ success: false, error: error.message, code: error.codigo || 'INTERNAL_ERROR' });
     }
   });
 
-  // --- ESCUCHAR MENSAJES ---
+  socket.on('get_private_history', async ({ chatId, limit = 20, lastMessageId }, callback) => {
+    if (!chatId) {
+      if (callback) callback({ success: false, error: 'chatId es requerido' });
+      return;
+    }
+    try {
+      const messages = await messageRepo.findWithPagination(chatId, limit, lastMessageId);
+      const newLastId = messages.length > 0 ? messages[0].id : null;
+      if (callback) callback({ messages, lastMessageId: newLastId });
+    } catch (error) {
+      console.error("[Socket Debug] ❌ Error obteniendo historial privado:", error);
+      if (callback) callback({ success: false, error: 'Error al obtener historial' });
+    }
+  });
+
+  socket.on('get_messages_since', async ({ chatId, timestamp }, callback) => {
+    if (!chatId || !timestamp) {
+      if (callback) callback([]);
+      return;
+    }
+    try {
+      const messages = await messageRepo.getMessagesSince(chatId, timestamp);
+      if (callback) callback(messages);
+    } catch (error) {
+      console.error("[Socket Debug] ❌ Error obteniendo mensajes desde timestamp:", error);
+      if (callback) callback([]);
+    }
+  });
+
+  // --- ESCUCHAR MENSAJES (GRUPAL) ---
   socket.on('send_message', async (rawPayload, callback) => {
     let payload = rawPayload;
 
