@@ -105,6 +105,35 @@ chatSubject.attach(groupChatObserver);
 // --- PRESENCE TRACKER ---
 const activeUsers = new Map();
 
+// --- HELPERS ---
+const formatMessageDTO = (msg) => {
+  // Manejamos casos donde msg puede venir del Use Case o directamente de la DB
+  const id = msg.id || msg.messageId || `temp_${Date.now()}`;
+  const createdAt = msg.createdAt;
+  
+  // Si createdAt es un Timestamp de Firebase, lo convertimos a ISO
+  const timestamp = (createdAt && typeof createdAt.toDate === 'function') 
+    ? createdAt.toDate().toISOString() 
+    : (createdAt instanceof Date ? createdAt.toISOString() : new Date().toISOString());
+
+  return {
+    message_id: id,
+    timestamp,
+    sender: { id: msg.senderId },
+    content: msg.text || msg.content,
+    renderedContent: msg.renderedContent,
+    metadata: msg.metadata || msg
+  };
+};
+
+const formatErrorDTO = (error) => ({
+  error: true,
+  codigo: error.codigo || 'INTERNAL_ERROR',
+  mensaje: error.message || 'Ha ocurrido un error inesperado',
+  detalles: error.detalles || (error.codigo === 'MESSAGE_TOO_LONG' ? 'Máximo 2000 caracteres' : null),
+  timestamp: new Date().toISOString()
+});
+
 io.on('connection', async (socket) => {
   const { userId, study_group_id } = socket.handshake.query;
 
@@ -202,29 +231,22 @@ io.on('connection', async (socket) => {
       const messageData = file ? { type: 'file', fileUrl: file.url, fileName: file.name, text } : { type: 'text', text };
       const result = await sendMessageUC.execute(chatId, senderId, messageData);
       
-      const responseData = {
-        message_id: result.id || `temp_${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        sender: { id: senderId },
-        content: result.text,
-        renderedContent: result.renderedContent,
-        metadata: result
-      };
+      const responseData = formatMessageDTO(result);
 
       // Emitir a la sala privada
       socketService.emitToChat(`room_private_${chatId}`, 'receive_private_message', responseData);
+      
+      // 4. ECO A SALA PERSONAL (Multi-dispositivo)
+      socketService.emitToChat(`user_${senderId}`, 'receive_private_message', responseData);
 
       if (callback) callback({ success: true, data: responseData });
     } catch (error) {
       console.error('[Socket Debug] ❌ ERROR en flujo send_private_message:', error);
       
-      // Emitir evento de error explícito al remitente para que la UI informe del problema de validación
-      socket.emit('error_message', {
-        code: error.codigo || 'INTERNAL_ERROR',
-        message: error.message
-      });
+      const errorDTO = formatErrorDTO(error);
+      socket.emit('error_message', errorDTO);
 
-      if (callback) callback({ success: false, error: error.message, code: error.codigo || 'INTERNAL_ERROR' });
+      if (callback) callback({ success: false, ...errorDTO });
     }
   });
 
@@ -235,8 +257,17 @@ io.on('connection', async (socket) => {
     }
     try {
       const messages = await messageRepo.findWithPagination(chatId, limit, lastMessageId);
-      const newLastId = messages.length > 0 ? messages[0].id : null;
-      if (callback) callback({ messages, lastMessageId: newLastId });
+      const formattedMessages = messages.map(formatMessageDTO);
+      const newLastId = formattedMessages.length > 0 ? formattedMessages[0].message_id : null;
+      
+      // Lógica hasMore: Si el número de mensajes es igual al límite, hay más
+      const hasMore = messages.length === limit;
+
+      if (callback) callback({ 
+        messages: formattedMessages, 
+        lastMessageId: newLastId,
+        hasMore 
+      });
     } catch (error) {
       console.error("[Socket Debug] ❌ Error obteniendo historial privado:", error);
       if (callback) callback({ success: false, error: 'Error al obtener historial' });
@@ -250,9 +281,48 @@ io.on('connection', async (socket) => {
     }
     try {
       const messages = await messageRepo.getMessagesSince(chatId, timestamp);
-      if (callback) callback(messages);
+      const formattedMessages = messages.map(formatMessageDTO);
+      if (callback) callback(formattedMessages);
     } catch (error) {
       console.error("[Socket Debug] ❌ Error obteniendo mensajes desde timestamp:", error);
+      if (callback) callback([]);
+    }
+  });
+
+  // --- HISTORIAL GRUPAL ---
+  socket.on('get_group_history', async ({ groupId, limit = 20, lastMessageId }, callback) => {
+    if (!groupId) {
+      if (callback) callback({ success: false, error: 'groupId es requerido' });
+      return;
+    }
+    try {
+      const messages = await groupMessageRepo.findWithPagination(groupId, limit, lastMessageId);
+      const formattedMessages = messages.map(formatMessageDTO);
+      const newLastId = formattedMessages.length > 0 ? formattedMessages[0].message_id : null;
+      const hasMore = messages.length === limit;
+
+      if (callback) callback({ 
+        messages: formattedMessages, 
+        lastMessageId: newLastId,
+        hasMore 
+      });
+    } catch (error) {
+      console.error("[Socket Debug] ❌ Error historial grupal:", error);
+      if (callback) callback({ success: false, error: 'Error al obtener historial' });
+    }
+  });
+
+  socket.on('get_group_messages_since', async ({ groupId, timestamp }, callback) => {
+    if (!groupId || !timestamp) {
+      if (callback) callback([]);
+      return;
+    }
+    try {
+      const messages = await groupMessageRepo.getMessagesSince(groupId, timestamp);
+      const formattedMessages = messages.map(formatMessageDTO);
+      if (callback) callback(formattedMessages);
+    } catch (error) {
+      console.error("[Socket Debug] ❌ Error delta sync grupal:", error);
       if (callback) callback([]);
     }
   });
@@ -286,25 +356,22 @@ io.on('connection', async (socket) => {
 
       console.log(`[Socket Debug] 3. Persistencia exitosa, ID: ${result.messageId}`);
 
-      const responseData = {
-        message_id: result.messageId,
-        timestamp: new Date().toISOString(),
-        sender: { id: result.senderId },
-        content: result.content,
-        renderedContent: result.renderedContent,
-        metadata: result
-      };
+      const responseData = formatMessageDTO(result);
+
+      // Notificación delegada al Use Case para la sala del grupo
+      // pero hacemos eco a la sala personal para sincronización multi-dispositivo
+      socketService.emitToChat(`user_${sender_id}`, 'receive_message', responseData);
 
       if (callback) {
         console.log(`[Socket Debug] 4. Enviando callback de éxito al cliente`);
         callback({ success: true, data: responseData });
       }
 
-      console.log(`[Socket Debug] 5. Flujo completado (Notificación delegada al Use Case)`);
-
     } catch (error) {
       console.error('[Socket Debug] ❌ ERROR en flujo send_message:', error);
-      if (callback) callback({ success: false, error: error.message });
+      const errorDTO = formatErrorDTO(error);
+      socket.emit('error_message', errorDTO);
+      if (callback) callback({ success: false, ...errorDTO });
     }
   });
 
