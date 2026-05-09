@@ -3,46 +3,59 @@ const PrioridadDecorator = require('../../domain/decorators/PrioridadDecorator')
 const AccionDecorator = require('../../domain/decorators/AccionDecorator');
 
 /**
- * Persists a notification in Firestore for the user's dashboard/history.
- * No push (FCM) logic - only persistence.
+ * Context class that coordinates multiple notification strategies.
+ * Implements Strategy pattern to decouple what is sent from how it is sent.
  */
 class SendNotification {
-  constructor(notificationRepo) {
-    this.notificationRepo = notificationRepo;
+  constructor(strategies, preferenceRepo) {
+    this.strategies = strategies; // Array of INotificacionStrategy
+    this.preferenceRepo = preferenceRepo;
   }
 
   async execute(notificationData) {
-    console.log(`[Notification] Saving for user ${notificationData.userId}: ${notificationData.title}`);
+    console.log(`[Notification] Processing event for user ${notificationData.userId}: ${notificationData.title}`);
 
     try {
-      // 1. Instanciar la notificación base
+      // 1. Get user preferences (Criterio 4 preparation)
+      const preferences = await this.preferenceRepo.getPreferences(notificationData.userId);
+      
+      // 2. Prepare the processed DTO using current Decorator logic
       let notificacion = new Notification({
         ...notificationData,
         status: 'unread',
         createdAt: new Date()
       });
 
-      // 2. Envolver con Prioridad si existe
       if (notificationData.priority) {
         notificacion = new PrioridadDecorator(notificacion, notificationData.priority);
       }
 
-      // 3. Envolver con Acción si existe
       if (notificationData.action) {
         notificacion = new AccionDecorator(notificacion, notificationData.action);
       }
 
-      // 4. Obtener el DTO inmutable final procesado
       const finalDTO = notificacion.getDTO();
 
-      // 5. Persistir el DTO directamente y devolverlo
-      const notificationId = await this.notificationRepo.save(finalDTO);
-      console.log(`[Notification] Saved with id ${notificationId}`);
+      // 3. Execute all injected strategies (Criterio 1, 2 & 3)
+      // Note: Filtering logic based on preferences will be polished in Task 2
+      const executionResults = [];
       
-      return { notificationId, notification: finalDTO };
+      for (const strategy of this.strategies) {
+        const result = await strategy.enviar(finalDTO);
+        executionResults.push(result);
+      }
+
+      console.log(`[Notification] All strategies executed for ${notificationData.userId}`);
+      
+      return { 
+        success: true, 
+        results: executionResults, 
+        notification: finalDTO 
+      };
+
     } catch (error) {
-      console.error('[Notification] Error construyendo notificación:', error.message);
-      throw new Error(`Error en la creación de notificación: ${error.message}`);
+      console.error('[Notification] Error in strategy execution flow:', error.message);
+      throw new Error(`Notification sending failed: ${error.message}`);
     }
   }
 }
