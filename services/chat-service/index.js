@@ -147,11 +147,22 @@ io.on('connection', async (socket) => {
   // Guardar userId en el socket
   socket.userId = userId;
 
-  // 1. PRESENCIA Y SALA PERSONAL (US-W06 C5)
+  // 1. PRESENCIA SEGMENTADA POR GRUPOS (US-W06 C5)
   activeUsers.set(userId, socket.id);
   socket.join(`user_${userId}`);
-  io.emit('USER_STATUS_CHANGED', { userId, status: 'online' });
-  console.log(`[Socket] Presencia: Usuario ${userId} online`);
+  
+  // Notificar solo a los grupos del usuario
+  try {
+    const groupIds = await groupMemberRepo.getGroupsByUserId(userId);
+    groupIds.forEach(gid => {
+      io.to(gid).emit('USER_STATUS_CHANGED', { userId, status: 'online' });
+    });
+    console.log(`[Socket] Presencia segmentada: Notificado online a ${groupIds.length} grupos.`);
+  } catch (err) {
+    console.error("[Socket] Error notificando presencia segmentada:", err);
+    // Fallback global solo si falla lo anterior (opcional)
+    io.emit('USER_STATUS_CHANGED', { userId, status: 'online' });
+  }
 
   // Evento para consultar el estado de un usuario específico
   socket.on('check_user_status', ({ userId: targetUserId }, callback) => {
@@ -195,11 +206,23 @@ io.on('connection', async (socket) => {
     console.log(`[Socket] Usuario ${socket.userId} salió de la sala: ${groupId}`);
   });
 
-  // --- MENCIONES (Móvil C4) ---
-  socket.on('get_mention_suggestions', async ({ groupId }, callback) => {
+  // --- MENCIONES DINÁMICAS (C4) ---
+  socket.on('get_mention_suggestions', async ({ groupId, query }, callback) => {
     try {
-      const members = await groupMemberRepo.getGroupMembersWithNames(groupId);
-      // members ya contiene id, username, photoUrl, etc.
+      let members = await groupMemberRepo.getGroupMembersWithNames(groupId);
+      
+      // Filtrar por query si existe
+      if (query) {
+        const q = query.toLowerCase();
+        members = members.filter(m => 
+          (m.name && m.name.toLowerCase().includes(q)) || 
+          (m.id && m.id.toLowerCase().includes(q))
+        );
+      } else {
+        // Si no hay query, limitamos a los primeros 15 por optimización
+        members = members.slice(0, 15);
+      }
+
       if (callback) callback({ success: true, data: members });
     } catch (error) {
       console.error("[Socket] Error obteniendo miembros para menciones:", error);
@@ -214,13 +237,45 @@ io.on('connection', async (socket) => {
     console.log(`[Socket] Usuario ${socket.userId} unido al chat privado: ${roomName}`);
   });
 
+  // Endpoint de "Snapshot" de Cabecera de Chat (Tarea 4)
+  socket.on('get_chat_header_info', async ({ chatId, userId }, callback) => {
+    try {
+      const chat = await chatRepo.findById(chatId);
+      if (!chat || !chat.participants) {
+        return callback({ success: false, error: 'Chat no encontrado' });
+      }
+
+      // Encontrar al otro participante
+      const otherId = chat.participants.find(p => p !== userId);
+      if (!otherId) {
+        return callback({ success: false, error: 'Participante no encontrado' });
+      }
+
+      // Consultar info del usuario (Aquí asumimos que tenemos acceso a db para info básica)
+      const userDoc = await db.collection('users').doc(otherId).get();
+      const userData = userDoc.exists ? userDoc.data() : { name: 'Compañero' };
+
+      if (callback) callback({
+        success: true,
+        data: {
+          name: userData.name || userData.displayName || 'Compañero',
+          photoUrl: userData.photoUrl || userData.avatar || null,
+          status: activeUsers.has(otherId) ? 'online' : 'offline'
+        }
+      });
+    } catch (err) {
+      console.error("[Socket] Error en get_chat_header_info:", err);
+      if (callback) callback({ success: false, error: 'Error interno' });
+    }
+  });
+
   socket.on('send_private_message', async (rawPayload, callback) => {
     let payload = rawPayload;
     if (typeof rawPayload === 'string') {
       try { payload = JSON.parse(rawPayload); } catch (e) {}
     }
 
-    const { chatId, senderId, text, file } = payload || {};
+    const { chatId, senderId, receiverId, text, file } = payload || {};
     
     if (!chatId || !senderId || (!text && !file)) {
       if (callback) callback({ success: false, error: 'Campos requeridos faltantes para chat privado' });
@@ -233,11 +288,16 @@ io.on('connection', async (socket) => {
       
       const responseData = formatMessageDTO(result);
 
-      // Emitir a la sala privada
+      // 1. Emitir a la sala privada (si están dentro)
       socketService.emitToChat(`room_private_${chatId}`, 'receive_private_message', responseData);
       
-      // 4. ECO A SALA PERSONAL (Multi-dispositivo)
+      // 2. ECO A SALA PERSONAL (Multi-dispositivo)
       socketService.emitToChat(`user_${senderId}`, 'receive_private_message', responseData);
+
+      // 3. ENTREGA AL DESTINATARIO (Directo a su habitación personal)
+      if (receiverId) {
+        socketService.emitToChat(`user_${receiverId}`, 'receive_private_message', responseData);
+      }
 
       if (callback) callback({ success: true, data: responseData });
     } catch (error) {
@@ -375,13 +435,22 @@ io.on('connection', async (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log(`[Socket] Usuario ${userId} desconectado`);
-    // Limpiar presencia y emitir estado offline
+    // Limpiar presencia y emitir estado offline segmentado
     if (activeUsers.get(userId) === socket.id) {
       activeUsers.delete(userId);
-      io.emit('USER_STATUS_CHANGED', { userId, status: 'offline' });
-      console.log(`[Socket] Presencia: Usuario ${userId} offline`);
+      
+      try {
+        const groupIds = await groupMemberRepo.getGroupsByUserId(userId);
+        groupIds.forEach(gid => {
+          io.to(gid).emit('USER_STATUS_CHANGED', { userId, status: 'offline' });
+        });
+        console.log(`[Socket] Presencia segmentada: Notificado offline a ${groupIds.length} grupos.`);
+      } catch (err) {
+        console.error("[Socket] Error notificando offline segmentado:", err);
+        io.emit('USER_STATUS_CHANGED', { userId, status: 'offline' });
+      }
     }
   });
 });

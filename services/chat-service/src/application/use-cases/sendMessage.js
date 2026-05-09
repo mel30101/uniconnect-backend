@@ -49,8 +49,11 @@ class SendMessage {
       senderId,
       type: data.type || 'text',
       text: message.getContenido(),
-      renderedContent: message.render(),
-      metadata: message.getMetadata()
+      renderedContent: validationRequest.renderedText || message.render(),
+      metadata: {
+        ...message.getMetadata(),
+        mentions: validationRequest.mentions || []
+      }
     };
 
     await this.messageRepo.create(chatId, payload);

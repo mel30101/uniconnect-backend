@@ -17,7 +17,7 @@ class ValidarMencionesPrivadoHandler extends BaseHandler {
       return await super.manejar(request);
     }
 
-    const mentionRegex = /@([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑa-záéíóúñ]+)*)/g;
+    const mentionRegex = /@(\w+)/g;
     const matches = [...text.matchAll(mentionRegex)];
 
     if (matches.length === 0) {
@@ -28,28 +28,32 @@ class ValidarMencionesPrivadoHandler extends BaseHandler {
     try {
       const chat = await this.chatRepo.findById(chatId);
       const mentionedUserIds = [];
+      let renderedText = text;
 
-      // En un chat privado las menciones generalmente aplican al otro participante.
-      // Aquí simplificamos, si hay una mención, verificamos a los participantes.
+      // Primero, envolvemos todas las menciones detectadas en el texto para consistencia visual (US-CH01)
+      for (const match of matches) {
+        renderedText = renderedText.replace(match[0], `<span class="mention">${match[0]}</span>`);
+      }
+
+      // Luego, intentamos identificar los IDs de los mencionados si el chat existe
       if (chat && chat.participants) {
-        // Asumiendo que participants son los userIds.
-        // Como no tenemos el username directamente aquí sin consultar 'users', 
-        // simplemente marcamos las menciones para que el frontend las maneje o las ignoramos
-        // ya que en chat privado de 2 personas siempre le llega al otro.
-        // Pero para cumplir la US-CH01, inyectamos los IDs de los participantes como mencionados.
-        
         for (const participantId of chat.participants) {
           if (participantId !== request.senderId) {
-             mentionedUserIds.push(participantId);
+             // En un chat 1:1, si hay una mención, asumimos que es para el otro.
+             if (matches.length > 0) {
+               mentionedUserIds.push(participantId);
+             }
           }
         }
       }
 
       request.mentions = mentionedUserIds;
+      request.renderedText = renderedText;
 
     } catch (error) {
       console.error('[ValidarMencionesPrivadoHandler] Error detectando menciones:', error);
       request.mentions = [];
+      request.renderedText = text;
     }
 
     return await super.manejar(request);
