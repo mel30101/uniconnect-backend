@@ -8,9 +8,11 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "firebase-admin": "^12.0.0",
+    "@sendgrid/mail": "^8.1.6",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "firebase-admin": "^12.0.0",
+    "mjml": "^5.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

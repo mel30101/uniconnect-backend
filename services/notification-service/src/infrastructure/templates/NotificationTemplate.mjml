@@ -1,0 +1,25 @@
+<mjml>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding-bottom="0px">
+      <mj-column width="100%">
+        <mj-divider border-color="#2d3436"></mj-divider>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff">
+      <mj-column>
+        <mj-text font-size="20px" color="#2d3436" font-family="Helvetica">
+          Hola, {{userName}}
+        </mj-text>
+        <mj-text font-size="16px" color="#636e72">
+          Tienes una nueva notificación de <b>UniConnect</b>:
+        </mj-text>
+        <mj-text font-size="18px" font-weight="bold" color="#0984e3">
+          {{title}}
+        </mj-text>
+        <mj-text font-size="14px" line-height="20px">
+          {{body}}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
