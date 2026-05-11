@@ -97,6 +97,13 @@ class SendGroupMessage {
       ...messageJson
     };
 
+    const messageId = await this.groupMessageRepo.create(groupId, messageJson);
+    
+    const result = {
+      messageId,
+      ...messageJson
+    };
+
     // 6. Notificar a los Observadores (ChatSubject)
     // Criterio: Cerrar el flujo notificando a los interesados tras la persistencia
     chatSubject.notify(ChatEvents.NUEVO_MENSAJE, {
