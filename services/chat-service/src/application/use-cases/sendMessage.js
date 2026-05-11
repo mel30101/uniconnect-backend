@@ -1,15 +1,32 @@
 const MensajeBase = require('../../domain/MensajeBase');
 const MensajeConArchivo = require('../../domain/decorators/MensajeConArchivo');
+const ValidationChainFactory = require('../factories/ValidationChainFactory');
 
 class SendMessage {
   constructor(messageRepo, chatRepo) {
     this.messageRepo = messageRepo;
     this.chatRepo = chatRepo;
+    this.validationChain = ValidationChainFactory.createPrivateMessageChain(chatRepo);
   }
 
   async execute(chatId, senderId, messageData) {
     const isObject = typeof messageData === 'object' && messageData !== null;
     const data = isObject ? messageData : { text: messageData, type: 'text' };
+
+    // 0. Ejecutar Cadena de Responsabilidad (Validación)
+    const validationRequest = { 
+      chatId, 
+      senderId, 
+      text: data.text || ''
+    };
+    
+    const validationResult = await this.validationChain.manejar(validationRequest);
+    
+    if (!validationResult.esValido) {
+      const error = new Error(validationResult.error);
+      error.codigo = validationResult.codigo;
+      throw error;
+    }
 
     // 1. Crear instancia base
     let message = new MensajeBase(data.text || '', { 
@@ -32,8 +49,11 @@ class SendMessage {
       senderId,
       type: data.type || 'text',
       text: message.getContenido(),
-      renderedContent: message.render(),
-      metadata: message.getMetadata()
+      renderedContent: validationRequest.renderedText || message.render(),
+      metadata: {
+        ...message.getMetadata(),
+        mentions: validationRequest.mentions || []
+      }
     };
 
     await this.messageRepo.create(chatId, payload);

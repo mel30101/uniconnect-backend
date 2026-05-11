@@ -46,6 +46,15 @@ class FirestoreGroupMemberRepository {
       
     return !snapshot.empty;
   }
+
+  async getGroupsByUserId(userId) {
+    const snapshot = await this.db
+      .collection('group_members')
+      .where('userId', '==', userId)
+      .get();
+    
+    return snapshot.docs.map(doc => doc.data().groupId);
+  }
 }
 
 module.exports = FirestoreGroupMemberRepository;

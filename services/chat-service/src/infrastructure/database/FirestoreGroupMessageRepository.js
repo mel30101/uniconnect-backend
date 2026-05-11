@@ -25,6 +25,50 @@ class FirestoreGroupMessageRepository {
     }
   }
 
+  async findWithPagination(groupId, limitCount = 20, lastMessageId = null) {
+    let query = this.db
+      .collection('groups')
+      .doc(groupId)
+      .collection('messages')
+      .orderBy('createdAt', 'desc')
+      .limit(limitCount);
+
+    if (lastMessageId) {
+      const lastMessageDoc = await this.db
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .doc(lastMessageId)
+        .get();
+
+      if (lastMessageDoc.exists) {
+        query = query.startAfter(lastMessageDoc);
+      }
+    }
+
+    const snapshot = await query.get();
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })).reverse();
+  }
+
+  async getMessagesSince(groupId, timestamp) {
+    const dateObj = new Date(timestamp);
+    const snapshot = await this.db
+      .collection('groups')
+      .doc(groupId)
+      .collection('messages')
+      .where('createdAt', '>', dateObj)
+      .orderBy('createdAt', 'asc')
+      .get();
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  }
+
   async getById(groupId, messageId) {
     const doc = await this.db
       .collection('groups')
