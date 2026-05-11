@@ -194,11 +194,7 @@ io.on('connection', async (socket) => {
         callback({ success: true, data: responseData });
       }
 
-      console.log(`[Socket Debug] 5. Notificando a observadores (Observer Pattern)`);
-      chatSubject.notify(ChatEvents.NUEVO_MENSAJE, {
-        groupId: group_id,
-        message: responseData
-      });
+      console.log(`[Socket Debug] 5. Flujo completado (Notificación delegada al Use Case)`);
 
     } catch (error) {
       console.error('[Socket Debug] ❌ ERROR en flujo send_message:', error);
