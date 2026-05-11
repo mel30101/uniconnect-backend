@@ -11,8 +11,8 @@ describe('Event Services - Pruebas de Suscripciones y Categorías', () => {
 
   beforeEach(async () => {
     jest.restoreAllMocks();
-    // Limpiar la colección de suscripciones para mantener el aislamiento
-    const snapshot = await db.collection('subscriptions').get();
+    // Limpiar la colección 'event_subscriptions' para mantener el aislamiento
+    const snapshot = await db.collection('event_subscriptions').get();
     const batch = db.batch();
     snapshot.docs.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
@@ -29,13 +29,21 @@ describe('Event Services - Pruebas de Suscripciones y Categorías', () => {
 
   // 2. Obtener las categorías suscritas de un usuario
   it('debe obtener las categorías suscritas de un usuario específico', async () => {
-    // 1. Crear suscripción de prueba en la base de datos
-    await db.collection('subscriptions').add({
-      userId: 'estudiante-123',
-      categoryId: 'cat-academia'
+    // 1. Crear una categoría de prueba en Firestore
+    await db.collection('categories').doc('cat-academia').set({
+      id: 'cat-academia',
+      name: 'Academia'
     });
 
-    // 2. Hacer la petición GET al endpoint
+    // 2. Crear suscripción de prueba con la estructura del repositorio
+    await db.collection('event_subscriptions').doc('estudiante-123').set({
+      categoryIds: ['cat-academia']
+    });
+
+    // Esperar al emulador de Firestore
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 3. Hacer la petición GET al endpoint
     const response = await request(app)
       .get('/events/suscripciones/estudiante-123');
 
@@ -46,11 +54,12 @@ describe('Event Services - Pruebas de Suscripciones y Categorías', () => {
 
   // 3. Prueba de eliminación de suscripción (desuscribirse)
   it('debe permitir a un usuario desuscribirse de una categoría', async () => {
-    // 1. Crear suscripción previa
-    await db.collection('subscriptions').add({
-      userId: 'estudiante-123',
-      categoryId: 'cat-academia'
+    // 1. Crear la suscripción previa usando la misma estructura del repositorio
+    await db.collection('event_subscriptions').doc('estudiante-123').set({
+      categoryIds: ['cat-academia']
     });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // 2. Llamar al endpoint DELETE usando query params
     const response = await request(app)
@@ -58,12 +67,12 @@ describe('Event Services - Pruebas de Suscripciones y Categorías', () => {
 
     expect(response.status).toBe(204); // Sin contenido tras eliminar
 
-    // 3. Validar que la suscripción ya no existe en la base de datos
-    const snap = await db.collection('subscriptions')
-      .where('userId', '==', 'estudiante-123')
-      .where('categoryId', '==', 'cat-academia')
-      .get();
-    expect(snap.empty).toBe(true);
+    // 3. Validar que la suscripción fue eliminada del arreglo en Firestore
+    const snap = await db.collection('event_subscriptions').doc('estudiante-123').get();
+    
+    expect(snap.exists).toBe(true);
+    const data = snap.data();
+    expect(data.categoryIds).not.toContain('cat-academia');
   });
 
   // 4. Validación de parámetros en la eliminación

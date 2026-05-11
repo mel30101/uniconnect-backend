@@ -8,3 +8,5 @@ class AuthController {
     res.json(user);
   }
 }
+
+module.exports = AuthController;

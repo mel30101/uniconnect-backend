@@ -7,6 +7,13 @@ dotenv.config();
 
 // Infrastructure
 const FirestoreNotificationRepository = require('./src/infrastructure/repositories/FirestoreNotificationRepository');
+const FirestoreTokenRepository = require('./src/infrastructure/repositories/FirestoreTokenRepository');
+const FirestorePreferenceRepository = require('./src/infrastructure/repositories/FirestorePreferenceRepository');
+
+// Strategies
+const InAppStrategy = require('./src/infrastructure/strategies/InAppStrategy');
+const PushMovilStrategy = require('./src/infrastructure/strategies/PushMovilStrategy');
+const EmailInstitucionalStrategy = require('./src/infrastructure/strategies/EmailInstitucionalStrategy');
 
 // Application
 const SendNotification = require('./src/application/use-cases/SendNotification');
@@ -33,9 +40,18 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Dependency Injection (solo persistencia, sin FCM)
+// Dependency Injection (Criterio 3 - Strategy Pattern)
 const notificationRepo = new FirestoreNotificationRepository(db);
-const sendNotificationUseCase = new SendNotification(notificationRepo);
+const tokenRepo = new FirestoreTokenRepository(db);
+const preferenceRepo = new FirestorePreferenceRepository(db);
+
+const strategies = [
+  new InAppStrategy(notificationRepo),
+  new PushMovilStrategy(tokenRepo),
+  new EmailInstitucionalStrategy()
+];
+
+const sendNotificationUseCase = new SendNotification(strategies, preferenceRepo);
 const notificationObserver = new NotificationObserver(sendNotificationUseCase);
 
 // HTTP Server

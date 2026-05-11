@@ -89,6 +89,18 @@ class SendGroupMessage {
     if (validationRequest.renderedText) {
       messageJson.renderedContent = validationRequest.renderedText;
     }
+    
+    // US-CH01: El backend es la única fuente de verdad para el marcado de menciones
+    if (validationRequest.renderedText) {
+      messageJson.renderedContent = validationRequest.renderedText;
+    }
+
+    const messageId = await this.groupMessageRepo.create(groupId, messageJson);
+    
+    const result = {
+      messageId,
+      ...messageJson
+    };
 
     const messageId = await this.groupMessageRepo.create(groupId, messageJson);
     

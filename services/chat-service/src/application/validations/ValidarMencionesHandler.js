@@ -18,6 +18,7 @@ class ValidarMencionesHandler extends BaseHandler {
     }
 
     const mentionRegex = /@(\w+)/g;
+    const mentionRegex = /@([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑa-záéíóúñ]+)*)/g;
     const matches = [...text.matchAll(mentionRegex)];
 
     if (matches.length === 0) {
@@ -42,6 +43,8 @@ class ValidarMencionesHandler extends BaseHandler {
           }
           // US-CH01: Estandarización del Marcado de Menciones
           renderedText = renderedText.replace(match[0], `<span class="mention">@${foundMember.name}</span>`);
+        if (foundMember && !mentionedUserIds.includes(foundMember.id)) {
+          mentionedUserIds.push(foundMember.id);
         }
       }
 

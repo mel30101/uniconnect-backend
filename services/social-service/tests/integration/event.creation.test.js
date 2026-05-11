@@ -12,8 +12,8 @@ describe('Event Services - Pruebas de Integración de Eventos', () => {
 
   beforeEach(async () => {
     jest.restoreAllMocks();
-    // Limpiar la colección de eventos y suscripciones para aislar la prueba
-    const collections = ['events', 'subscriptions'];
+    // Limpiar la colección de eventos y suscripciones (usando la colección correcta)
+    const collections = ['events', 'event_subscriptions'];
     for (const col of collections) {
       const snapshot = await db.collection(col).get();
       const batch = db.batch();
@@ -60,7 +60,7 @@ describe('Event Services - Pruebas de Integración de Eventos', () => {
   // 3. Prueba de obtención de eventos
   it('debe obtener la lista de eventos correctamente', async () => {
     // Crear evento de prueba
-    const eventRef = await db.collection('events').add({
+    await db.collection('events').add({
       title: 'Conferencia de IA',
       type: 'Tecnología',
       date: '2026-06-01T09:00:00Z'
@@ -74,16 +74,22 @@ describe('Event Services - Pruebas de Integración de Eventos', () => {
     expect(response.body.length).toBeGreaterThan(0);
   });
 
-  // 5. Prueba de prevención de doble suscripción
+  // 4. Prueba de prevención de doble suscripción
   it('debe retornar 409 si ya está suscrito a una categoría', async () => {
     const subscriptionData = {
       userId: 'estudiante-123',
       categoryId: 'cat-academia'
     };
 
-    // Simulamos la suscripción previa en Firestore
-    await db.collection('subscriptions').add(subscriptionData);
+    // 1. Crear documento en la colección correcta y con el formato de array
+    await db.collection('event_subscriptions').doc('estudiante-123').set({
+      categoryIds: ['cat-academia']
+    });
 
+    // 2. Esperar a que el emulador consolide la información
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 3. Hacer la petición para suscribirse de nuevo
     const response = await request(app)
       .post('/events/suscribir')
       .send(subscriptionData);
